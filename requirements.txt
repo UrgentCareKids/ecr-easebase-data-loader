@@ -1,2 +1,2 @@
-subprocess
 boto3
+psycopg2
