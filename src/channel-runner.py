@@ -19,5 +19,13 @@ result = cursor.fetchall()
 for row in result:
     print(row)
 
-# Remember to close the connection when you're done
+# Remember to close the connection when you're done - ChatGPT
 conn.close()
+
+
+
+# next steps:
+# 1. use the connection to easebase to log the event.
+# 2. Move into runner format (i.e. seperate file for the channel rather than code in this file) - reintroduce passthrough code
+# 3. test with multiple files
+# 4. add a section/design for passthrough sql files???
