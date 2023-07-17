@@ -1,60 +1,62 @@
-import pymysql
-import paramiko
-import boto3
-import base64
+import os
+import subprocess
 import tempfile
+import boto3
+import mysql.connector  # make sure you have installed this module
+import time
 
-def ssh_connect(secret_name, region_name):
-    client = boto3.client("secretsmanager", region_name=region_name)
-    response = client.get_secret_value(SecretId=secret_name)
-    secret_binary = response['SecretBinary']
-    decoded_binary_secret = base64.b64decode(secret_binary)
+def get_ssh_key_from_parameter_store(parameter_name):
+    ssm_client = boto3.client('ssm')
+    response = ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)
+    ssh_key = response['Parameter']['Value']
+
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        temp_file.write(decoded_binary_secret)
-        temp_file_path = temp_file.name
-        print("Temporary File Path:", temp_file_path)
+        temp_file.write(ssh_key.encode('utf-8'))
+        ssh_key_path = temp_file.name
 
-    private_key = paramiko.RSAKey.from_private_key_file(temp_file_path)
+    os.chmod(ssh_key_path, 0o600)
 
-    parameter_name = "db_mysql_mahler"
-    ssm_client = boto3.client("ssm", region_name=region_name)
-    response = ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)
-    parameter_value = response['Parameter']['Value']
-    parameter_value = eval(parameter_value)  # Convert string representation to dictionary
+    return ssh_key_path
 
-    ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(
-        hostname=parameter_value['ssh_hostname'],
-        username=parameter_value['ssh_username'],
-        pkey=private_key
-    )
+def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mysql_host, mysql_username, mysql_password, mysql_database):
+    ssh_key_path = get_ssh_key_from_parameter_store(ssh_parameter_name)
 
-    return ssh_client
+    try:
+        ssh_command = [
+            'ssh', '-v', '-i', ssh_key_path,
+            '-o', 'StrictHostKeyChecking=no',
+            '-L', '3306:' + mysql_host + ':3306',
+            '-N', '-f', '-l', ssh_username, ssh_host
+        ]
 
-def mahler_conn():
-    secret_name = "ecr-easebase-mahler-db"
-    region_name = "us-east-2"
-    parameter_name = "db_mysql_mahler"
+        process = subprocess.Popen(ssh_command)
+        process.wait()
+        if process.returncode != 0:
+            raise Exception(f'SSH command failed with return code: {process.returncode}')
 
-    ssm_client = boto3.client("ssm", region_name=region_name)
-    response = ssm_client.get_parameter(Name=parameter_name, WithDecryption=True)
-    parameter_value = response['Parameter']['Value']
-    parameter_value = eval(parameter_value)  # Convert string representation to dictionary
+        # Allow some time for the SSH tunnel to establish
+        time.sleep(5)
 
-    ssh_client = ssh_connect(secret_name, region_name)
+        connection = mysql.connector.connect(
+            host='127.0.0.1',
+            port=3306,
+            user=mysql_username,
+            passwd=mysql_password,
+            database=mysql_database
+        )
+        
+        return connection
 
-    # Perform SSH operations if needed
+    finally:
+        os.remove(ssh_key_path)
 
-    conn = pymysql.connect(
-        host=parameter_value['host'],
-        port=parameter_value['port'],
-        user=parameter_value['user'],
-        password=parameter_value['password'],
-        database=parameter_value['database']
-    )
-    conn.autocommit = False
-    return conn
-
-if __name__ == "__main__":
-    mahler_conn()
+# Example usage
+conn = connect_to_mysql_through_ssh(
+    ssh_host='mahlerdbview.mahlerhealth.com',
+    ssh_username='goodsidehealthserveruser',
+    ssh_parameter_name='db_mahler_msqltunnel_key',
+    mysql_host='localhost',
+    mysql_username='goodsidedbuser52',
+    mysql_password='Ki4jJvkkKslekKVdjkDJkeiV42JKJK429JjkV19JKjksvlx',
+    mysql_database='goodsidehealthDBview'
+)
