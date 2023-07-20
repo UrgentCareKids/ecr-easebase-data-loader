@@ -3,8 +3,6 @@ import subprocess
 import tempfile
 import boto3
 import mysql.connector  # make sure you have installed this module
-import time
-import json
 
 def get_ssh_key_from_parameter_store(parameter_name):
     ssm_client = boto3.client('ssm')
@@ -19,19 +17,12 @@ def get_ssh_key_from_parameter_store(parameter_name):
 
     return ssh_key_path
 
-def get_mahler_param(param_name):
-    ssm_client = boto3.client('ssm')
-    response = ssm_client.get_parameter(Name='db_mysql_mahler', WithDecryption=True)
-    param_response = json.loads(response['Parameter']['Value'])[param_name]
-    return param_response
-
-
 def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mysql_host, mysql_username, mysql_password, mysql_database):
     ssh_key_path = get_ssh_key_from_parameter_store(ssh_parameter_name)
 
     try:
         ssh_command = [
-            'ssh', '-i', ssh_key_path,
+            'ssh', '-v', '-i', ssh_key_path,
             '-o', 'StrictHostKeyChecking=no',
             '-L', '3306:' + mysql_host + ':3306',
             '-N', '-f', '-l', ssh_username, ssh_host
@@ -42,12 +33,9 @@ def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mys
         if process.returncode != 0:
             raise Exception(f'SSH command failed with return code: {process.returncode}')
 
-        # Allow some time for the SSH tunnel to establish
-        time.sleep(5)
-
         connection = mysql.connector.connect(
             host='127.0.0.1',
-            port=3306,
+            port='3306',
             user=mysql_username,
             passwd=mysql_password,
             database=mysql_database
@@ -58,25 +46,25 @@ def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mys
     finally:
         os.remove(ssh_key_path)
 
-def mahler_connect():
-    ssh_host=get_mahler_param('ssh_hostname')
-    ssh_username=get_mahler_param('ssh_username')
-    ssh_parameter_name='db_mahler_msqltunnel_key'
-    mysql_host='localhost'
-    mysql_username=get_mahler_param('user')
-    mysql_password=get_mahler_param('password')
-    mysql_database=get_mahler_param('database')
-   
-    return connect_to_mysql_through_ssh(
-        ssh_host,
-        ssh_username,
-        ssh_parameter_name,
-        mysql_host,
-        mysql_username,
-        mysql_password,
-        mysql_database
-    )
-
-    
-
 # Example usage
+conn = connect_to_mysql_through_ssh(
+    ssh_host='mahlerdbview.mahlerhealth.com',
+    ssh_username='goodsidehealthserveruser',
+    ssh_parameter_name='db_mahler_msqltunnel_key',
+    mysql_host='localhost',
+    mysql_username='goodsidedbuser52',
+    mysql_password='Ki4jJvkkKslekKVdjkDJkeiV42JKJK429JjkV19JKjksvlx',
+    mysql_database='goodsidehealthDBview'
+)
+
+cursor = conn.cursor()
+cursor.execute("SELECT * FROM client_billing")
+rows = cursor.fetchall()
+with open('output.txt', 'w') as f:
+    for row in rows:
+        f.write(', '.join([str(elem) for elem in row]))
+        f.write('\n')
+
+
+cursor.close()
+conn.close()
