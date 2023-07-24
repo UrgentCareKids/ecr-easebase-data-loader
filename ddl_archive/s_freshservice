@@ -1,0 +1,44 @@
+
+-- stg_freshservice.assets_json definition
+-- Drop table
+-- DROP TABLE stg_freshservice.assets_json;
+
+CREATE TABLE stg.s_freshservice_assets_json (
+	create_ts timestamptz NULL DEFAULT now(),
+	update_ts timestamptz NULL DEFAULT now(),
+	payload json NULL
+);
+
+-- Permissions
+
+ALTER TABLE stg_freshservice.assets_json OWNER TO easebase_sa;
+GRANT ALL ON TABLE stg_freshservice.assets_json TO easebase_sa;
+
+
+-- stg_freshservice.freshservice_hardware definition
+-- Drop table
+-- DROP TABLE stg_freshservice.freshservice_hardware;
+
+CREATE TABLE stg.s_freshservice_hardware (
+	display_nm varchar NOT NULL,
+	asset_type varchar NULL,
+	description varchar NULL,
+	asset_tag varchar NULL,
+	impact varchar NULL,
+	used_by_email varchar NULL,
+	department varchar NULL,
+	managed_by_email varchar NULL,
+	assigned_on timestamptz NULL,
+	asset_location varchar NULL,
+	managed_by_group varchar NULL,
+	end_of_life date NULL,
+	used_by_nm varchar NULL,
+	managed_by_nm varchar NULL,
+	CONSTRAINT freshservice_hardware_pkey PRIMARY KEY (display_nm)
+);
+
+-- Permissions
+
+ALTER TABLE stg_freshservice.freshservice_hardware OWNER TO easebase_sa;
+GRANT ALL ON TABLE stg_freshservice.freshservice_hardware TO easebase_sa;
+
