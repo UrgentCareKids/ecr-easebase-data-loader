@@ -10,7 +10,7 @@ import os
 import sys
 
 # variables
-schema = 'stg_paylocity'
+schema = 'stg'
 all_assets = []
 
 # Get Easebase Module
@@ -42,7 +42,7 @@ def get_payload_assets():
         all_assets = response.json()
         print('API call was successful')
         # Process the assets as needed
-        insert_into_easebase('assets_json',all_assets)
+        insert_into_easebase('s_freshservice_assets_json',all_assets)
         print('Data Load was successful')
     else:
         print(f"Failed to fetch assets. Status code: {response.status_code}")

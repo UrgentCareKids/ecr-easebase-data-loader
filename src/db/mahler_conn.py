@@ -58,7 +58,7 @@ def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mys
     finally:
         os.remove(ssh_key_path)
 
-def mahler_connect():
+def mahler_conn():
     ssh_host=get_mahler_param('ssh_hostname')
     ssh_username=get_mahler_param('ssh_username')
     ssh_parameter_name='db_mahler_msqltunnel_key'

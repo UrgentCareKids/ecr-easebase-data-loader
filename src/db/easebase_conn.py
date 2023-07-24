@@ -4,9 +4,12 @@ import json
 import os
 
 
+
+
 def easebase_conn():
-    ssm = boto3.client('ssm',  aws_access_key_id=os.environ['KEY'], aws_secret_access_key=os.environ['SECRET'],  region_name='us-east-2')
-    param = ssm.get_parameter(Name='db_postgres_easebase', WithDecryption=True )
+    ssm = boto3.client('ssm')
+    #ssm = boto3.client('ssm',  aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],  region_name='us-east-2')
+    param = ssm.get_parameter(Name='db_postgres_easebase_internal', WithDecryption=True )
     db_request = json.loads(param['Parameter']['Value']) 
 
     hostname = db_request['host']
