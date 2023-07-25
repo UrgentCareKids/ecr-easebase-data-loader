@@ -2,10 +2,3 @@ boto3
 psycopg2-binary==2.9.3
 paramiko
 mysql.connector
-os
-json
-base64
-sys
-time
-datetime
-requests
