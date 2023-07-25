@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2 import sql
 import boto3
-#import os
+import os
 import time
 from db.mahler_conn import mahler_conn
 from db.easebase_conn import easebase_conn
@@ -139,7 +139,7 @@ for table in tables:
         #     s3.upload_fileobj(data, 'uc4k-db', s3_key)
 
         # If you want to keep the files locally, comment out the next line
-        os.remove(file_path)
+        # os.remove(file_path)
 
 
 
