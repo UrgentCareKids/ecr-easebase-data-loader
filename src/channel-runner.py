@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2 import sql
 import boto3
-import os
+#import os
 import time
 from db.mahler_conn import mahler_conn
 from db.easebase_conn import easebase_conn
@@ -24,9 +24,13 @@ tables = m_cursor.fetchall()
 # Define the constants
 run_id = int(time.time())
 phase = 's_load'
-table_name_prefix = 'stg.s_mahler_'
+schema = 'stg.'
+table_name_prefix = 's_mahler_'
 log_table = 'logging.eb_log'
 channel = 'mahler'
+backup_schema='stg_backup.'
+#use the mount in the task for the connection
+dir_path = '/easebase/'
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
@@ -39,6 +43,7 @@ def sanitize_pg_name(pg_name):
     return sanitized_pg_name
 
 
+
 for table in tables:
     table = table[0]
     pg_table = sanitize_pg_name(table)
@@ -49,7 +54,7 @@ for table in tables:
         rsql=f"""
             INSERT INTO {log_table}
             (run_id, channel, phase, run_source, run_target, run_status, start_ts)
-            VALUES ({run_id}, '{channel}', '{phase}', '{table}', '{target_table}', 'running', CURRENT_TIMESTAMP);
+            VALUES ({run_id}, '{channel}', '{phase}', '{table}', '{schema}{target_table}', 'running', CURRENT_TIMESTAMP);
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
@@ -104,24 +109,45 @@ for table in tables:
         # Check if the target table exists in the easebase database
         eb_cursor.execute(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
         table_exists = eb_cursor.fetchone()[0]
+        print(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
 
         # Create backup table in the easebase database
         if table_exists:
             # If the table exists, create a backup table
-            backup_table = f'{target_table}_bck'
+            backup_table = f'{backup_schema}{target_table}_bck'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
-            eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {target_table}")
+            eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
+            print(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
 
-        # Create new table in the easebase database
+        # Create new table in the easebase databas
         #print(f"CREATE TABLE {target_table} ({columns_with_types})")
-        eb_cursor.execute(f"DROP TABLE IF EXISTS {target_table}")
-        eb_cursor.execute(f"CREATE TABLE {target_table} ({columns_with_types})")
+        eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
+        eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
         
+
+        # Write the data to a csv file in the specified directory
+        file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.csv")
+        with open(file_path, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            for row in rows:
+                writer.writerow(row)
+
+
+        # Upload the csv file to S3 -- will be changed
+        # s3_key = f"easebase/s_loads/s_mahler/{os.path.basename(file_path)}"
+        # with open(file_path, 'rb') as data:
+        #     s3.upload_fileobj(data, 'uc4k-db', s3_key)
+
+        # If you want to keep the files locally, comment out the next line
+        os.remove(file_path)
+
+
+
         # Insert each row to the easebase database
-        for row in rows:
-            insert_sql = sql.SQL(f"INSERT INTO {target_table} ({columns_names}) VALUES %s")
-            eb_cursor.execute(insert_sql, (row,))
-        eb_conn.commit()
+        # for row in rows:
+        #     insert_sql = sql.SQL(f"INSERT INTO {target_table} ({columns_names}) VALUES %s")
+        #     eb_cursor.execute(insert_sql, (row,))
+        # eb_conn.commit()
 
         # Update the log record for this run_id and table to success
         rsql=f"""
