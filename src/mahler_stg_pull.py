@@ -1,12 +1,18 @@
 import psycopg2
 from psycopg2 import sql
+import sys
 import boto3
 import os
 import time
+
+#set the import path for db
+sys.path.append('./db')
+
 from db.mahler_conn import mahler_conn
 from db.easebase_conn import easebase_conn
 from datetime import datetime
 import re
+import csv
 
 # Initialize AWS S3 client
 s3 = boto3.client('s3')
@@ -50,6 +56,15 @@ for table in tables:
     target_table = f'{table_name_prefix}{pg_table}'
 
     try:
+        # Update the log record set prior stuck in running to "failed"
+        priorsql=f"""
+            UPDATE {log_table}
+            SET run_status = 'failed', end_ts = CURRENT_TIMESTAMP
+            WHERE  run_source = '{table}' and channel = '{channel}' and run_status = 'running';
+        """
+        eb_cursor.execute(priorsql)
+        eb_conn.commit()
+
         # Log the start of processing
         rsql=f"""
             INSERT INTO {log_table}
@@ -109,7 +124,7 @@ for table in tables:
         # Check if the target table exists in the easebase database
         eb_cursor.execute(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
         table_exists = eb_cursor.fetchone()[0]
-        print(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
+       # print(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
 
         # Create backup table in the easebase database
         if table_exists:
@@ -117,37 +132,42 @@ for table in tables:
             backup_table = f'{backup_schema}{target_table}_bck'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
             eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
-            print(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
+            
 
         # Create new table in the easebase databas
-        #print(f"CREATE TABLE {target_table} ({columns_with_types})")
+        
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
-        
+      
 
-        # Write the data to a csv file in the specified directory
-        file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.csv")
-        with open(file_path, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
+        # Create new table in the easebase databas
+        
+        eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
+        eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
+   
+
+        # ... previous code ...
+
+        # Write the data to a tab-delimited file in the specified directory
+        file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
+        with open(file_path, 'w', newline='') as tsvfile:
+            writer = csv.writer(tsvfile, delimiter='|')
             for row in rows:
                 writer.writerow(row)
 
+        # Open the tab-delimited file and load it into the PostgreSQL database
+        with open(file_path, 'r') as f:
+           # next(f)  # Skip the header row.
+            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
 
-        # Upload the csv file to S3 -- will be changed
-        # s3_key = f"easebase/s_loads/s_mahler/{os.path.basename(file_path)}"
-        # with open(file_path, 'rb') as data:
-        #     s3.upload_fileobj(data, 'uc4k-db', s3_key)
+        eb_conn.commit()
 
-        # If you want to keep the files locally, comment out the next line
-        # os.remove(file_path)
+        # ... rest of your code ...
 
 
-
-        # Insert each row to the easebase database
-        # for row in rows:
-        #     insert_sql = sql.SQL(f"INSERT INTO {target_table} ({columns_names}) VALUES %s")
-        #     eb_cursor.execute(insert_sql, (row,))
-        # eb_conn.commit()
+        print(f"{schema}{target_table} complete...")
+        
+        os.remove(file_path)
 
         # Update the log record for this run_id and table to success
         rsql=f"""
@@ -163,7 +183,7 @@ for table in tables:
                 err = remove_non_letters(str(e))
                 rsql=f"""
                     UPDATE {log_table}
-                    SET run_status = 'failure', error_desc = '{err[:255]}', end_ts = CURRENT_TIMESTAMP
+                    SET run_status = 'failed', error_desc = '{err[:255]}', end_ts = CURRENT_TIMESTAMP
                     WHERE run_id = {run_id} AND run_source = '{table}' and channel = '{channel}';
                 """
                 eb_cursor.execute(rsql)
