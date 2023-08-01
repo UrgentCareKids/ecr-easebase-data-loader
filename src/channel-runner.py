@@ -7,6 +7,7 @@ from db.mahler_conn import mahler_conn
 from db.easebase_conn import easebase_conn
 from datetime import datetime
 import re
+import csv
 
 # Initialize AWS S3 client
 s3 = boto3.client('s3')
@@ -17,7 +18,7 @@ m_cursor = m_conn.cursor()
 eb_conn = easebase_conn()
 eb_cursor = eb_conn.cursor()
 
-# Get all table names in your database
+# # Get all table names in your database
 m_cursor.execute("SHOW TABLES")
 tables = m_cursor.fetchall()
 
@@ -29,9 +30,10 @@ table_name_prefix = 's_mahler_'
 log_table = 'logging.eb_log'
 channel = 'mahler'
 backup_schema='stg_backup.'
-#use the mount in the task for the connection
-dir_path = '/easebase/'
+bucket = 'uc4k-db'
+prefix= 'easebase/s_loads/s_mahler/'
 
+#Define Functions
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
 
@@ -63,7 +65,7 @@ for table in tables:
         m_cursor.execute(f"SELECT * FROM `{table}`")
         rows = m_cursor.fetchall()
 
-               # Fetch column names and types from the mahler database
+        # Fetch column names and types from the mahler database
         m_cursor.execute(f"SHOW COLUMNS FROM `{table}`")
         columns_data = m_cursor.fetchall()
         columns_names = ', '.join([sanitize_pg_name(column[0]) for column in columns_data])
@@ -105,7 +107,8 @@ for table in tables:
             return map_dict.get(data_type, "text") # Default to "text" if data type is not found
         
         columns_with_types = ', '.join([f"{sanitize_pg_name(column[0])} {map_data_types(column[1])}" for column in columns_data])
-
+        print(columns_with_types)
+        
         # Check if the target table exists in the easebase database
         eb_cursor.execute(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
         table_exists = eb_cursor.fetchone()[0]
@@ -123,36 +126,27 @@ for table in tables:
         #print(f"CREATE TABLE {target_table} ({columns_with_types})")
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
-        
 
-        # Write the data to a csv file in the specified directory
-        file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.csv")
-        with open(file_path, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            for row in rows:
-                writer.writerow(row)
+        # Create the header row for the CSV file
+        header_row = columns_names
 
+        # Clean the data for each row before joining them with commas (e.g. sa-facilities)
+        cleaned_rows = [
+            [str(cell).replace(',', '') for cell in row]
+            for row in rows
+        ]
 
-        # Upload the csv file to S3 -- will be changed
-        # s3_key = f"easebase/s_loads/s_mahler/{os.path.basename(file_path)}"
-        # with open(file_path, 'rb') as data:
-        #     s3.upload_fileobj(data, 'uc4k-db', s3_key)
+        # Generate the CSV data as a string
+        csv_data = f"{header_row}\n" + "\n".join([",".join(map(str, row)) for row in cleaned_rows])
 
-        # If you want to keep the files locally, comment out the next line
-        # os.remove(file_path)
+        # Upload the csv data to S3 directly (overwrite the existing file if it already exists)
+        s3_key = f"easebase/s_loads/s_mahler/{table}_{datetime.now().strftime('%Y_%m_%d')}.csv"
+        s3.put_object(Bucket='uc4k-db', Key=s3_key, Body=csv_data)
 
-
-
-        # Insert each row to the easebase database
-        # for row in rows:
-        #     insert_sql = sql.SQL(f"INSERT INTO {target_table} ({columns_names}) VALUES %s")
-        #     eb_cursor.execute(insert_sql, (row,))
-        # eb_conn.commit()
-
-        # Update the log record for this run_id and table to success
+        # Update the log record for this run_id and table to temorary status uploaded to s3 (later will be success once in db)
         rsql=f"""
             UPDATE {log_table}
-            SET run_status = 'success', end_ts = CURRENT_TIMESTAMP
+            SET run_status = 'Uploaded to S3'
             WHERE run_id = {run_id} AND run_source = '{table}' and channel = '{channel}';
         """
         eb_cursor.execute(rsql)
@@ -172,6 +166,30 @@ for table in tables:
                    # Update all previous log records for this run_id and table to not be the latest
         
 
-# Remember to close the connection when you're done
+# Mahler Upload to S3 is done
 m_conn.close()
+
+#create variable for today's day to get the keys
+#get data from corresponding csv file and insert into table on easebase (loop through)
+
+# Use the list_objects_v2 method to list files in the specified subfolder
+response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+
+# Extract the list of filenames from the response
+file_list = [obj['Key'][len(prefix):] for obj in response['Contents']]
+print('S3 File list: ', file_list)
+
+#assign today's date
+today_date = datetime.now().strftime('%Y_%m_%d')
+
+#return only the filenames with today's date in it
+todays_files = [file for file in file_list if today_date in file]
+print('S3 Files from Today: ',todays_files)
+
+#grab the table names from those without the date
+table_names = [file.split('_' + today_date)[0] for file in todays_files]
+print('S3 Table Names from Today: ', table_names)
+
+#need to insert into easebase
+
 eb_conn.close()

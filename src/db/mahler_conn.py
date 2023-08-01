@@ -37,12 +37,14 @@ def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mys
             '-N', '-f', '-l', ssh_username, ssh_host
         ]
 
+        # Start the SSH tunnel process
         process = subprocess.Popen(ssh_command)
+        print(f"SSH command started. PID: {process.pid}")
         process.wait()
         if process.returncode != 0:
             raise Exception(f'SSH command failed with return code: {process.returncode}')
 
-        # Allow some time for the SSH tunnel to establish
+        # Wait for the SSH tunnel to establish
         time.sleep(5)
 
         connection = mysql.connector.connect(
@@ -56,6 +58,8 @@ def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mys
         return connection
 
     finally:
+        #this doesn't seem to close the SSH tunnel, if you run sudo lsof -i :3306 in the terminal it still shows up
+        process.terminate()
         os.remove(ssh_key_path)
 
 def mahler_conn():
