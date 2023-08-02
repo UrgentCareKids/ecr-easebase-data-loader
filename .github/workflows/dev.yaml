@@ -27,7 +27,7 @@ jobs:
       - name: Build Docker container
         id: build-image
         run: |
-          docker build -t $ECR_REGISTRY/gsh/ecr-easebase-data-loader:dev .
+          docker build -t $ECR_REGISTRY/gsh/ecr-easebase-data-loader:latest .
         env:
           ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
       # - name: Run tests
@@ -37,6 +37,6 @@ jobs:
       #   env:
       #     ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
       - name: Push image to Amazon ECR
-        run: docker push $ECR_REGISTRY/gsh/ecr-easebase-data-loader:dev
+        run: docker push $ECR_REGISTRY/gsh/ecr-easebase-data-loader:latest
         env:
           ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
