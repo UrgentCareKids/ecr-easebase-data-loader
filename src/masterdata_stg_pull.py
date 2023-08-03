@@ -27,13 +27,12 @@ eb_cursor = eb_conn.cursor()
 run_id = int(time.time())
 phase = 's_load'
 schema = 'stg.'
-table_name_prefix = 's_patient_service_'
+table_name_prefix = 's_ptsrv_'
 log_table = 'logging.eb_log'
 channel = 'masterdata'
 backup_schema='stg_backup.'
 tables = ['mat_tmp_fast_demographics', 'mahler_event_cx', 'mahler_id_cx', 'mstr_hl7_interface_id_cx', 'mstr_guarantor_hl7_interface_id_cx', 'mstr_intake_transaction_router']
 #use the mount in the task for the connection
-#dir_path = '/easebase/'
 dir_path = '/easebase/'  # Mac directory path
 
 
@@ -84,7 +83,7 @@ for table in tables:
         # Create backup table in the easebase database 
         if table_exists:
             # If the table exists, create a backup table
-            backup_table = f'{backup_schema}{target_table}_bck'
+            backup_table = f'{backup_schema}{target_table}'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
             eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
             
