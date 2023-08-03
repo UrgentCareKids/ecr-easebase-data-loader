@@ -105,10 +105,11 @@ for table in tables:
     # Write the data
             md_cursor.copy_to(tsvfile, table, sep='|', null='')
 
+
 # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
             print(f"starting copy {schema}{target_table}")
-            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|'", f)
+            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' NULL as ''", f)
         eb_conn.commit()
 
         print(f"{schema}{target_table} complete...")
