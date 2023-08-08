@@ -27,14 +27,13 @@ eb_cursor = eb_conn.cursor()
 run_id = int(time.time())
 phase = 's_load'
 schema = 'stg.'
-table_name_prefix = 's_patient_service_'
+table_name_prefix = 's_ptsrv_'
 log_table = 'logging.eb_log'
 channel = 'masterdata'
 backup_schema='stg_backup.'
-tables = ['mat_tmp_fast_demographics', 'mahler_event_cx'] #, 'mahler_id_cx', 'mstr_hl7_interface_id_cx', 'mstr_guarantor_hl7_interface_id_cx', 'mstr_intake_transaction_router']
+tables = ['mat_tmp_fast_demographics', 'mahler_event_cx', 'mahler_id_cx', 'mstr_hl7_interface_id_cx', 'mstr_guarantor_hl7_interface_id_cx', 'mstr_intake_transaction_router']
 #use the mount in the task for the connection
-#dir_path = '/easebase/'
-dir_path = '/Users/annastreichhardt/easebase/'  # Mac directory path
+dir_path = '/easebase/'  # Mac directory path
 
 
 def remove_non_letters(input_string):
@@ -62,13 +61,6 @@ for table in tables:
         eb_cursor.execute(rsql)
         eb_conn.commit()
 
-        #print("are we even getting here?")
-        # Fetch all rows from the patient service database
-        md_cursor.execute(f"SELECT * FROM {table}")
-        rows = md_cursor.fetchall()
-        #rows = md_cursor.fetchone()
-        print(f"Total rows: {len(rows)}")
-
         # Fetch column names and types from the patient service  database
         md_cursor.execute(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
         columns_data = md_cursor.fetchall()
@@ -81,17 +73,17 @@ for table in tables:
             else:
                 columns_with_types.append(f"{column[0]} {column[1]}")
         columns_with_types_str = ', '.join(columns_with_types)
-        print(columns_with_types_str) 
+
 
         # Check if the target table exists in the easebase database
         eb_cursor.execute(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
         table_exists = eb_cursor.fetchone()[0]
-       # print(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
+
 
         # Create backup table in the easebase database 
         if table_exists:
             # If the table exists, create a backup table
-            backup_table = f'{backup_schema}{target_table}_bck'
+            backup_table = f'{backup_schema}{target_table}'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
             eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
             
@@ -109,39 +101,14 @@ for table in tables:
         # Write the data to a tab-delimited file in the specified directory
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
         with open(file_path, 'w', newline='') as tsvfile:
-            writer = csv.writer(tsvfile, delimiter='|')
-            for row in rows:
-                writer.writerow(row)
+    # Write the data
+            md_cursor.copy_to(tsvfile, table, sep='|', null='')
 
-        # Open the tab-delimited file and load it into the PostgreSQL database
+
+# Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
-            try:
-                # Attempt to load the data, catching the out-of-range error
-                eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
-            except psycopg2.DataError as e:
-                # Handle the out-of-range error
-                print("Caught error:", e)
-                print("Replacing problematic pg_dob values with NULL...")
-                f.seek(0)  # Reset the file pointer
-                
-                # Create a temporary file with modified content
-                temp_file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}_temp.tsv")
-                with open(temp_file_path, 'w', newline='') as temp_file:
-                    for line in f:
-                        values = line.strip().split('|')
-                        pg_dob_index = columns_names.split(', ').index('pg_dob')
-                        pg_dob_value = values[pg_dob_index]
-                        try:
-                            year = int(pg_dob_value.split('-')[0]) if pg_dob_value else 0
-                            print(year)
-                            if year > 10000:
-                                values[pg_dob_index] = '\\N'
-                        except ValueError:
-                            values[pg_dob_index] = '\\N'
-                        temp_file.write('|'.join(values) + '\n')
-                
-                # Load the modified file into the PostgreSQL database
-                eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV HEADER", temp_file_path)
+            print(f"starting copy {schema}{target_table}")
+            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' NULL as ''", f)
         eb_conn.commit()
 
         print(f"{schema}{target_table} complete...")
@@ -167,7 +134,7 @@ for table in tables:
                 """
                 eb_cursor.execute(rsql)
                 eb_conn.commit()
-                print(e)
+            
         #continue
                    # Update all previous log records for this run_id and table to not be the latest
         

@@ -129,7 +129,7 @@ for table in tables:
         # Create backup table in the easebase database
         if table_exists:
             # If the table exists, create a backup table
-            backup_table = f'{backup_schema}{target_table}_bck'
+            backup_table = f'{backup_schema}{target_table}'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
             eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
             
@@ -190,7 +190,6 @@ for table in tables:
                 eb_conn.commit()
         #continue
                    # Update all previous log records for this run_id and table to not be the latest
-        
 
 # Remember to close the connection when you're done
 m_conn.close()
