@@ -35,7 +35,6 @@ tables = ['mat_tmp_fast_demographics', 'mahler_event_cx', 'mahler_id_cx', 'mstr_
 #use the mount in the task for the connection
 dir_path = '/easebase/'  # Mac directory path
 
-
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
 

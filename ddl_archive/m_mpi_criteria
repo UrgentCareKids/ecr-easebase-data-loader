@@ -1,0 +1,26 @@
+
+---------------------- MPI CRITERIA CONTROL TABLE
+-- drop table public.m_mpi_criteria
+CREATE TABLE IF NOT EXISTS public.m_mpi_criteria (
+    criteria_id SERIAL PRIMARY KEY,
+    criteria varchar NOT NULL,
+    criteria_nm varchar NULL,
+    table_reference varchar null,
+    create_ts timestamp default CURRENT_DATE,
+    update_ts timestamp default CURRENT_DATE
+);
+ALTER TABLE public.m_mpi_criteria OWNER TO internal_datamovement;
+GRANT ALL ON TABLE public.m_mpi_criteria TO internal_datamovement;
+
+
+---------------------- MPI CRITERIA INSERTS
+/*
+ -- primary hash
+INSERT INTO public.m_mpi_criteria
+(criteria, criteria_nm, table_reference)
+VALUES('COALESCE(upper(p.patient_first_name), '''') || COALESCE(upper(p.patient_last_name), '''') || COALESCE(patient_dob::text,'''') || COALESCE(primary_phone1, ''''',
+    	'primary_hash',
+    	'p_patient')
+*/
+
+-- select * from public.m_mpi_criteria;

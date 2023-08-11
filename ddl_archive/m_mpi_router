@@ -1,0 +1,48 @@
+
+---------------------- MPI ROUTER
+-- drop table public.m_mpi_router
+CREATE TABLE IF NOT EXISTS public.m_mpi_router (
+    row_id SERIAL PRIMARY KEY,
+    mpi_id SERIAL NOT NULL,
+    primary_hash varchar NOT NULL,
+    source_sys varchar NULL,
+    source_id varchar null
+);
+ALTER TABLE public.m_mpi_router OWNER TO internal_datamovement;
+GRANT ALL ON TABLE public.m_mpi_router TO internal_datamovement;
+
+select * from public.m_mpi_router 
+----------------------
+
+
+
+------------------
+-- INSERT  : insert all rows and assign primary hash
+------------------
+	insert into public.m_mpi_router(primary_hash,source_sys,source_id)
+	 SELECT (select criteria from m_mpi_criteria where criteria_nm = 'primary_hash') as primary_hash,  
+	    p.source_sys,
+	    p.source_id
+		FROM p_patient p;
+
+------------------
+-- UPDATE  : if primary hash is the same, update with first mpi_id
+------------------
+	update public.m_mpi_router as t
+	set mpi_id = subquery.min_mpi_id
+		FROM (
+		    SELECT primary_hash, MIN(mpi_id) AS min_mpi_id
+		    FROM public.m_mpi_router
+		    GROUP BY primary_hash
+		    HAVING COUNT(*) > 1
+		) AS subquery
+		WHERE t.primary_hash = subquery.primary_hash;
+
+/*
+--JACOBCOOK2014-06-072812037245 appears 2 times
+SELECT primary_hash, MIN(mpi_id), count(primary_hash) AS min_mpi_id
+		    FROM public.m_mpi_router
+		    GROUP BY primary_hash
+		    HAVING COUNT(*) > 1
+		    order by 3 desc
+*/

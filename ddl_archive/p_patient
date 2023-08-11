@@ -1,0 +1,110 @@
+-- drop table p_patient
+/*
+CREATE TABLE public.p_patient (
+	source_sys varchar NULL,
+	source_id varchar NULL, 
+	patient_first_name varchar NULL,
+	patient_last_name varchar NULL,
+	patient_middle_name varchar NULL,
+	patient_dob date NULL,
+	patient_birth_sex varchar NULL,
+	patient_address varchar NULL,
+	patient_address2 varchar NULL,
+	patient_address_city varchar NULL,
+	patient_address_zip varchar NULL,
+	patient_address_state varchar NULL,
+	primary_phone1 varchar NULL,
+	pg_email varchar NULL,
+	primary_ins_carrier varchar NULL,
+	primary_ins_policy_id varchar NULL
+);
+
+-- Permissions
+
+ALTER TABLE public.p_patient OWNER TO internal_datamovement;
+GRANT ALL ON TABLE public.p_patient TO internal_datamovement;
+*/
+
+
+
+-- insert s_mpi_imagine_pediatrics 
+	insert into public.p_patient (source_sys, source_id, patient_first_name, patient_last_name, patient_middle_name, patient_dob, patient_birth_sex, 
+								patient_address, patient_address2, patient_address_city, patient_address_zip, patient_address_state, primary_phone1, 
+  								pg_email, primary_ins_carrier, primary_ins_policy_id)
+  	select 'imagine_pediatrics' as source_sys,
+  		null, 
+	  	patient_first_name,
+		patient_last_name,
+		patient_middle_name,
+		patient_dob::date,
+		patient_birth_sex,
+		patient_address,
+		patient_address2,
+		patient_address_city,
+		null, --patient_address_zip
+		patient_address_state,
+		patient_phone1,
+		pg_email,
+		primary_ins_carrier,
+		primary_ins_policy_ind
+        from stg.s_mpi_imagine_pediatrics 
+    ;
+
+-- insert s_mpi_molina   
+   insert into public.p_patient (source_sys, source_id, patient_first_name, patient_last_name, patient_middle_name, patient_dob, patient_birth_sex, 
+								patient_address, patient_address2, patient_address_city, patient_address_zip, patient_address_state, primary_phone1, 
+  								pg_email, primary_ins_carrier, primary_ins_policy_id)
+  	select 'molina' as source_sys,
+  		member_key, 
+    	SPLIT_PART(SPLIT_PART(member_fullname, ', ', 2), ' ', 1) AS patient_first_name,
+    	SPLIT_PART(member_fullname, ', ', 1) AS patient_last_name,
+    	CASE 
+       	 	WHEN POSITION(' ' IN SPLIT_PART(member_fullname, ', ', 2)) > 0 THEN 
+            	SPLIT_PART(SPLIT_PART(member_fullname, ', ', 2), ' ', 2)
+        	ELSE
+            	NULL
+    	END AS patient_middle_name,
+		null, --member_dob::date,
+		null, --patient_birth_sex,
+		member_mailing_address1,
+		member_mailing_address2,
+		member_mailing_city,
+		member_mailing_zip,
+		member_mailing_state,
+		member_phone,
+		null, --pg_email,
+		lob,
+		member_medicaidid
+        from stg.s_mpi_molina  
+    ;
+    
+   -- insert masterdata patient service data   
+   select * from stg.s_patient_service_mat_tmp_fast_demographics spsmtfd
+   
+   insert into public.p_patient (source_sys, source_id, patient_first_name, patient_last_name, patient_middle_name, patient_dob, patient_birth_sex, 
+								patient_address, patient_address2, patient_address_city, patient_address_state, patient_address_zip, primary_phone1, 
+  								pg_email, primary_ins_carrier, primary_ins_policy_id)
+  	select 'patient_service' as source_sys,
+  		master_id, 
+    	patient_first_name,
+    	patient_last_name,
+    	patient_middle_name,
+		patient_dob,
+		patient_birth_sex,
+		patient_address,
+		patient_address2,
+		patient_address_city,
+		patient_address_state,
+		patient_address_zip,
+		coalesce(patient_phone1, patient_phone2, pg_phone1), 
+		pg_email,
+		primary_ins_carrier,
+		primary_ins_policy_id
+        from stg.s_patient_service_mat_tmp_fast_demographics  
+    ;
+    
+   
+/*
+   select source_sys, count(*) from public.p_patient
+   group by 1;
+   *
