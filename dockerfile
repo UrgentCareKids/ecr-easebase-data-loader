@@ -7,4 +7,6 @@ COPY src/ .
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python3", "src/hello_world.py"]
+ENTRYPOINT ["python3"]
+
+CMD ["hello_world.py"]
