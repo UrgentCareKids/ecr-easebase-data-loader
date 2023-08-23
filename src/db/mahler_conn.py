@@ -33,7 +33,7 @@ def connect_to_mysql_through_ssh(ssh_host, ssh_username, ssh_parameter_name, mys
         ssh_command = [
             'ssh', '-i', ssh_key_path,
             '-o', 'StrictHostKeyChecking=no',
-            '-L', '3306:' + mysql_host + ':3306',
+            '-L', '0.0.0.0:3306:' + mysql_host + ':3306',
             '-N', '-f', '-l', ssh_username, ssh_host
         ]
 

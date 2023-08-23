@@ -1,5 +1,7 @@
 FROM public.ecr.aws/lambda/python:3.9
 
+RUN yum install -y openssh-clients
+
 WORKDIR /src
 
 COPY src/ .
