@@ -2,6 +2,3 @@ boto3
 psycopg2-binary
 paramiko
 mysql.connector
-subprocess
-tempfile
-time
