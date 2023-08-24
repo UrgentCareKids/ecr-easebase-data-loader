@@ -31,7 +31,7 @@ table_name_prefix = 's_ptsrv_'
 log_table = 'logging.eb_log'
 channel = 'masterdata'
 backup_schema='stg_backup.'
-tables = ['mat_tmp_fast_demographics', 'mahler_event_cx', 'mahler_id_cx', 'mstr_hl7_interface_id_cx', 'mstr_guarantor_hl7_interface_id_cx', 'mstr_intake_transaction_router']
+tables = ['mat_tmp_fast_demographics', 'mat_tmp_fast_search', 'mahler_event_cx', 'mahler_id_cx', 'mstr_hl7_interface_id_cx', 'mstr_guarantor_hl7_interface_id_cx', 'mstr_intake_transaction_router']
 #use the mount in the task for the connection
 dir_path = '/easebase/'  # Mac directory path
 
