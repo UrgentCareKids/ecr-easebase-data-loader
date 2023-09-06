@@ -57,7 +57,11 @@ for table in tables:
         eb_cursor.execute(rsql)
         eb_conn.commit()
 
-        # Fetch column names and types from the patient service  database
+        # Fetch all rows for table from the redshift
+        rd_cursor.execute(f"SELECT * FROM `{table}`")
+        rows = rd_cursor.fetchall()
+
+        # Fetch column names and types from the redshift table
         rd_cursor.execute(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
         columns_data = rd_cursor.fetchall()
         columns_names = ', '.join([column[0] for column in columns_data])
@@ -91,16 +95,19 @@ for table in tables:
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
 
-        # Write the data to a tab-delimited file in the specified directory
+
+ # Write the data to a tab-delimited file in the specified directory
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
         with open(file_path, 'w', newline='') as tsvfile:
-    # Write the data
-            rd_cursor.copy_to(tsvfile, table, sep='|', null='')
+            writer = csv.writer(tsvfile, delimiter='|')
+            for row in rows:
+                writer.writerow(row)
 
-    # Open the tab-delimited file and load it into the PostgreSQL database
+        # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
-            print(f"starting copy {schema}{target_table}")
-            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' NULL as ''", f)
+           # next(f)  # Skip the header row.
+            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
+
         eb_conn.commit()
 
         print(f"{schema}{target_table} complete...")
