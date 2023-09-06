@@ -26,10 +26,9 @@ table_name_prefix = 's_redshift_'
 log_table = 'logging.eb_log'
 channel = 'redshift'
 backup_schema='stg_backup.'
-tables = ['podium_feedback', 'podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot']
+tables = ['podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback']
 #use the mount in the task for the connection
 dir_path = '/easebase/'  # Mac directory path
-
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
@@ -57,17 +56,16 @@ for table in tables:
         eb_cursor.execute(rsql)
         eb_conn.commit()
 
-        # Fetch all rows for table from the redshift
-        rd_cursor.execute(f"SELECT * FROM `{table}`")
+        # Fetch all rows from the redshift table
+        rd_cursor.execute(f'SELECT * FROM "{table}"')
         rows = rd_cursor.fetchall()
 
         # Fetch column names and types from the redshift table
-        rd_cursor.execute(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}'")
+        rd_cursor.execute(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}' ORDER BY ordinal_position")
         columns_data = rd_cursor.fetchall()
         columns_names = ', '.join([column[0] for column in columns_data])
         
         columns_with_types = ', '.join([f"{(column[0])} {(column[1])}" for column in columns_data])
-        #print("COLUMNS WITH TYPES:", columns_with_types )
 
 
         # Check if the target table exists in the easebase database
@@ -83,18 +81,14 @@ for table in tables:
             eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
             
     
-        # Create new table in the easebase databas
-        
-        print(f"DROP TABLE IF EXISTS {schema}{target_table}")
+        # Create new table in the easebase databas   
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
-        print(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
         eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
       
 
         # Create new table in the easebase database
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
-
 
  # Write the data to a tab-delimited file in the specified directory
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
@@ -106,9 +100,8 @@ for table in tables:
         # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
            # next(f)  # Skip the header row.
-            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
+            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV", f)
 
-        eb_conn.commit()
 
         print(f"{schema}{target_table} complete...")
         
@@ -124,7 +117,7 @@ for table in tables:
         eb_conn.commit()
 
     except Exception as e:
-        #if table != 'pusers':
+                print(e)
                 err = remove_non_letters(str(e))
                 rsql=f"""
                     UPDATE {log_table}
