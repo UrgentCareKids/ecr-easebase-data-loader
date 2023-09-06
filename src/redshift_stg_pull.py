@@ -1,5 +1,4 @@
 import os, sys
-import requests
 import boto3
 import time
 from datetime import datetime
