@@ -30,14 +30,14 @@ def emds_conn():
     username = db_request['user']
     password = db_request['password']
 
-    connection_string = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password};TrustServerCertificate=yes;' 
+    connection_string = f'DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password};TrustServerCertificate=yes;' 
 
     try:
 
         conn = pyodbc.connect(connection_string)
         #cursor = conn.cursor()
-
         print("Connected to SQL Server successfully!")
+        return conn
 
     except Exception as e:
         print(f"Error: {str(e)}")
