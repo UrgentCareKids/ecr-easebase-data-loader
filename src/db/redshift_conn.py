@@ -18,3 +18,21 @@ def redshift_conn():
     conn = psycopg2.connect(host=hostname,user=dbusername,port=portno,password=dbpassword,dbname=dbname)
     conn.autocommit = False
     return conn
+
+
+def get_aws_credentials():
+    secrets_manager = boto3.client('secretsmanager')
+    secret_name = 'dev/etl'
+
+    try:
+        response = secrets_manager.get_secret_value(
+            SecretId=secret_name
+        )
+        secret_string = response['SecretString']
+        db_request = json.loads(secret_string)
+        return db_request
+    except Exception as e:
+        print(f"Error retrieving AWS credentials from Secrets Manager: {e}")
+        return None
+
+   
