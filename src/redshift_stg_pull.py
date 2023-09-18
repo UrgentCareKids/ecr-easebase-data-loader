@@ -31,7 +31,7 @@ table_name_prefix = 's_redshift_'
 log_table = 'logging.eb_log'
 channel = 'redshift'
 backup_schema='stg_backup.'
-tables = ['gsh_invoice_summary','pond_locations','pond_organizations','podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback', 'gsh_invoice_summary', 'gsh_invoice_line']
+tables = ['pond_locations','pond_organizations','podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback', 'gsh_invoice_summary', 'gsh_invoice_line']
 #use the mount in the task for the connection
 dir_path = '/easebase/'  # Mac directory path
 
