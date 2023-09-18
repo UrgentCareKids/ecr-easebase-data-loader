@@ -41,7 +41,7 @@ def remove_non_letters(input_string):
 
 for table in tables:
     target_table = f'{table_name_prefix}{table}'
-    
+    print(target_table)
     try:
         # Update the log record set prior stuck in running to "failed"
         priorsql=f"""
@@ -80,13 +80,14 @@ for table in tables:
         # Use the list_objects_v2 method to list files in the specified subfolder
         list = s3.list_objects_v2(Bucket=s3_bucket, Prefix=s3_prefix)
         # Check each object to see if it contains the current run_id in its key (filename)
-        current_file = [obj['Key'][len(s3_prefix):] for obj in list.get('Contents', []) if str(run_id) in obj['Key']]
+        current_file = [obj['Key'][len(s3_prefix):] for obj in list.get('Contents', []) if str(run_id) in obj['Key'] and table in obj['Key']]
         #get response for current file
         response = s3.get_object(Bucket=s3_bucket, Key=s3_prefix + current_file[0])
 
 
         # Read the first line of the file (which should be the header)
         header = response['Body'].readline().decode('utf-8')
+        print(header)
         # Split the header into individual columns based on the '|' delimiter
         columns = header.split('|')
         # Remove new line breaks from each column name and append " VARCHAR"
