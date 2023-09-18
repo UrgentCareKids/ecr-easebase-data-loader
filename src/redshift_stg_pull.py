@@ -4,12 +4,16 @@ import time
 from datetime import datetime
 import re
 import csv
+import gzip
+from io import BytesIO
 
-from db.redshift_conn import redshift_conn
+from db.redshift_conn import redshift_conn, get_aws_credentials
 from db.easebase_conn import easebase_conn
 
 # Initialize AWS S3 client
 s3 = boto3.client('s3')
+# Get AWS credentials in order to unload to S3 from Secrets Manager
+aws_credentials = get_aws_credentials()
 
 # Connect to your databases
 rd_conn = redshift_conn()
@@ -18,6 +22,8 @@ eb_conn = easebase_conn()
 eb_cursor = eb_conn.cursor()
 
 # Define the constants
+s3_bucket = 'uc4k-db'
+s3_prefix= 'easebase/s_loads/s_redshift/'
 run_id = int(time.time())
 phase = 's_load'
 schema = 'stg.'
@@ -25,7 +31,7 @@ table_name_prefix = 's_redshift_'
 log_table = 'logging.eb_log'
 channel = 'redshift'
 backup_schema='stg_backup.'
-tables = ['pond_locations','pond_organizations','podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback', 'gsh_invoice_summary', 'gsh_invoice_line']
+tables = ['gsh_invoice_summary','pond_locations','pond_organizations','podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback', 'gsh_invoice_summary', 'gsh_invoice_line']
 #use the mount in the task for the connection
 dir_path = '/easebase/'  # Mac directory path
 
@@ -55,22 +61,49 @@ for table in tables:
         eb_cursor.execute(rsql)
         eb_conn.commit()
 
-        # Fetch all rows from the redshift table
-        rd_cursor.execute(f'SELECT * FROM "{table}"')
-        rows = rd_cursor.fetchall()
 
-        # Fetch column names and types from the redshift table
-        rd_cursor.execute(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table}' ORDER BY ordinal_position")
-        columns_data = rd_cursor.fetchall()
-        columns_names = ', '.join([column[0] for column in columns_data])
-        
-        columns_with_types = ', '.join([f"{(column[0])} {(column[1])}" for column in columns_data])
+         # Use the UNLOAD command to export data to S3
+        unload_command = f"""
+            UNLOAD ('SELECT * FROM {table}')
+            TO 's3://{s3_bucket}/{s3_prefix}{table}_{run_id}'    
+            CREDENTIALS 'aws_access_key_id={aws_credentials['access_key_id']};aws_secret_access_key={aws_credentials['secret_access_key']}'   
+            DELIMITER '|'
+            ALLOWOVERWRITE
+            ESCAPE
+            PARALLEL OFF
+            HEADER;
+        """
+        rd_cursor.execute(unload_command)
 
+
+# Read CSV headers out of S3 file and create target and backup table on easebase
+        # Use the list_objects_v2 method to list files in the specified subfolder
+        list = s3.list_objects_v2(Bucket=s3_bucket, Prefix=s3_prefix)
+        # Check each object to see if it contains the current run_id in its key (filename)
+        current_file = [obj['Key'][len(s3_prefix):] for obj in list.get('Contents', []) if str(run_id) in obj['Key']]
+        #get response for current file
+        response = s3.get_object(Bucket=s3_bucket, Key=s3_prefix + current_file[0])
+
+
+        # Read the first line of the file (which should be the header)
+        header = response['Body'].readline().decode('utf-8')
+        # Split the header into individual columns based on the '|' delimiter
+        columns = header.split('|')
+        # Remove new line breaks from each column name and append " VARCHAR"
+        columns_with_varchar = [column.strip('\n') + ' VARCHAR' for column in columns]
+        # Join the columns into a single string
+        columns_names_with_types = ', '.join(columns_with_varchar)
+        # Print the list of columns
+        #print(f'Columns: {columns_names_with_types}')
+
+
+        # create list of columns without types for each column name
+        stripped_columns = [column.strip('\n') for column in columns]
+        columns_names = ', '.join(stripped_columns)
 
         # Check if the target table exists in the easebase database
         eb_cursor.execute(f"SELECT count(*) FROM information_schema.tables WHERE table_name = '{target_table}'")
         table_exists = eb_cursor.fetchone()[0]
-
 
         # Create backup table in the easebase database 
         if table_exists:
@@ -78,32 +111,28 @@ for table in tables:
             backup_table = f'{backup_schema}{target_table}'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
             eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
-            
-    
-        # Create new table in the easebase databas   
+                
+        
+        # Create new table in the easebase database   
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
-        eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
-      
+        eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_names_with_types})")
+        
 
-        # Create new table in the easebase database
-        eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
-        eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
+# Read Data into Easebase Table
 
- # Write the data to a tab-delimited file in the specified directory
+        # Download CSV file from S3
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
-        with open(file_path, 'w', newline='') as tsvfile:
-            writer = csv.writer(tsvfile, delimiter='|')
-            for row in rows:
-                writer.writerow(row)
+        s3.download_file(s3_bucket, s3_prefix + current_file[0], file_path)
 
-        # Open the tab-delimited file and load it into the PostgreSQL database
+        # Import CSV data into PostgreSQL
         with open(file_path, 'r') as f:
-           # next(f)  # Skip the header row.
-            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV", f)
-
+            print(f"starting copy {schema}{target_table}")
+            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' NULL as '' HEADER", f)
+        eb_conn.commit()
 
         print(f"{schema}{target_table} complete...")
         
+        #remove local copy
         os.remove(file_path)
 
         # Update the log record for this run_id and table to success
