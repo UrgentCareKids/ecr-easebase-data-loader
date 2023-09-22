@@ -75,12 +75,21 @@ for table in tables:
         eb_conn.commit()
 
         # Fetch all rows from the mahler database
-        m_cursor.execute(f"SELECT * FROM `{table}`")
-        rows = m_cursor.fetchall()
+        if table != 'pusers':
+            m_cursor.execute(f"SELECT * FROM `{table}`")
+            rows = m_cursor.fetchall()
+        else: 
+            m_cursor.execute(f"SELECT id,username,firstname,lastname,middlename,accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`")
+            rows = m_cursor.fetchall()
 
-               # Fetch column names and types from the mahler database
-        m_cursor.execute(f"SHOW COLUMNS FROM `{table}`")
-        columns_data = m_cursor.fetchall()
+        # Fetch column names and types from the mahler database
+        if table != 'pusers':
+            m_cursor.execute(f"SHOW COLUMNS FROM `{table}`")
+            columns_data = m_cursor.fetchall()
+        else:
+            m_cursor.execute(f"SHOW COLUMNS FROM `{table}` WHERE field IN ('id', 'username', 'firstname', 'lastname', 'middlename', 'accessLevel', 'date_added', 'active', 'lastLogin', 'module_access', 'practiceID', 'npi_number', 'licenses', 'additional_username', 'additional_identifier', 'fax_number', 'last_modified', 'region_ids', 'regions', 'taxonomy');")
+            columns_data = m_cursor.fetchall()
+            
         columns_names = ', '.join([sanitize_pg_name(column[0]) for column in columns_data])
 
         # Transform MySQL types to PostgreSQL types
@@ -132,21 +141,13 @@ for table in tables:
             backup_table = f'{backup_schema}{target_table}'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
             eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
-            
-
-        # Create new table in the easebase databas
         
-        eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
-        eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
       
-
-        # Create new table in the easebase databas
+        # Create new table in the easebase database
         
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
    
-
-        # ... previous code ...
 
         # Write the data to a tab-delimited file in the specified directory
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
