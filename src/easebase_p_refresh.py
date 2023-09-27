@@ -15,7 +15,7 @@ log_table = 'logging.eb_log'
 schema = 'p.'
 table_name_prefix = 'p_'
 channel = 'easebase'
-procs = ['p_pond_visit_order()', 'p_invoice_summary()', 'p_invoice_line()', 'tmp_mahler_visits_w_closed_charts()']
+procs = ['p_pond_visit_order()', 'p_invoice_summary()', 'p_invoice_line()', 'p_pond_location()', 'p_pond_organization()', 'tmp_mahler_visits_w_closed_charts()']
 
 # Connect to your databases
 eb_conn = easebase_conn()
