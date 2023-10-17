@@ -14,10 +14,9 @@ phase = 'phi_refresh'
 log_table = 'logging.eb_log'
 schema = 'phi.'
 channel = 'easebase'
-procs = ['refresh_ptsrv_patient_data()']
+procs = ['']
 # Create a dictionary to store the associations which proc is connected to which target table
 proc_to_targettable = {
-    'refresh_ptsrv_patient_data()': 'patient_data'
 }
 
 # Connect to your databases

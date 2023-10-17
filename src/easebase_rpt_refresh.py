@@ -1,4 +1,4 @@
-# this is including all procs which should run after the inital source pull
+# please add new procs in line 20 array procs and then the matching table into the proc_to_targettable data dictionary in line 22
 
 import psycopg2
 from psycopg2 import sql
@@ -10,16 +10,17 @@ from db.easebase_conn import easebase_conn
 
 # Define the constants
 run_id = int(time.time())
-phase = 'm_refresh'
+phase = 'rpt_refresh'
 log_table = 'logging.eb_log'
-schema = 'm.'
+schema = 'rpt.'
 channel = 'easebase'
-procs = ['refresh_mahler_facilities_unmapped()','m_mpi_router_upsert()']
+procs = ['refresh_ptsrv_patient_data()']
 # Create a dictionary to store the associations which proc is connected to which target table
 proc_to_targettable = {
-    'refresh_mahler_facilities_unmapped()': 'm_mahler_facilities_unmapped',
-    'm_mpi_router_upsert()': 'm_mpi_router'
+    'rpt_refresh_mpi()': 'rpt_mpi',
+    'rpt_refresh_patient()': 'rpt_patient'
 }
+
 # Connect to your databases
 eb_conn = easebase_conn()
 eb_cursor = eb_conn.cursor()
