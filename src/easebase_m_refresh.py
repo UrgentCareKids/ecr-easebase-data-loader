@@ -17,8 +17,8 @@ channel = 'easebase'
 procs = ['refresh_mahler_facilities_unmapped()','m_mpi_router_upsert()']
 # Create a dictionary to store the associations which proc is connected to which target table
 proc_to_targettable = {
-    'refresh_mahler_facilities_unmapped()': 'm_mahler_facilities_unmapped',
-    'm_mpi_router_upsert()': 'm_mpi_router'
+    'refresh_mahler_facilities_unmapped()':'m_mahler_facilities_unmapped',
+    'm_mpi_router_upsert()':'m_mpi_router'
 }
 # Connect to your databases
 eb_conn = easebase_conn()

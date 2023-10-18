@@ -14,11 +14,11 @@ phase = 'rpt_refresh'
 log_table = 'logging.eb_log'
 schema = 'rpt.'
 channel = 'easebase'
-procs = ['refresh_ptsrv_patient_data()']
+procs = ['rpt_refresh_mpi()','rpt_refresh_patient()']
 # Create a dictionary to store the associations which proc is connected to which target table
 proc_to_targettable = {
-    'rpt_refresh_mpi()': 'rpt_mpi',
-    'rpt_refresh_patient()': 'rpt_patient'
+    'rpt_refresh_mpi()':'rpt_mpi',
+    'rpt_refresh_patient()':'rpt_patient'
 }
 
 # Connect to your databases
