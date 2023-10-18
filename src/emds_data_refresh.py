@@ -21,7 +21,7 @@ eb_cursor = eb_conn.cursor()
 run_id = int(time.time())
 phase = 's_refresh'
 log_table = 'logging.eb_log'
-schema = 'uc4k.'
+schema = 'uc4k'
 table_name_prefix = 'sql_server'
 channel = 'emds'
 procs = ['dbo.emds_gen_invoice_summary' , 'dbo.emds_gen_invoice_line']
@@ -32,7 +32,7 @@ def remove_non_letters(input_string):
 
 
 #use uc4k database on sql server
-emds_cursor.execute("USE uc4k")
+emds_cursor.execute(f"USE {schema}")
 
 for proc in procs:
     try:
@@ -49,7 +49,7 @@ for proc in procs:
         rsql=f"""
             INSERT INTO {log_table}
             (run_id, channel, phase, run_source, run_target, run_status, start_ts)
-            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}{proc}', 'running', CURRENT_TIMESTAMP);
+            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}.{proc}', 'running', CURRENT_TIMESTAMP);
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
