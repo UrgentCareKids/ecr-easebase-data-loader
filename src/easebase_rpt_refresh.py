@@ -18,7 +18,8 @@ procs = ['rpt_refresh_mpi()','rpt_refresh_patient()']
 # Create a dictionary to store the associations which proc is connected to which target table
 proc_to_targettable = {
     'rpt_refresh_mpi()':'rpt_mpi',
-    'rpt_refresh_patient()':'rpt_patient'
+    'rpt_refresh_patient()':'rpt_patient',
+    'rpt.rpt_invoice_summary()': 'rpt_invoice_summary'
 }
 
 # Connect to your databases
