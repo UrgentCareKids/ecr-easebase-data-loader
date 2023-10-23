@@ -24,7 +24,7 @@ log_table = 'logging.eb_log'
 schema = 'uc4k'
 table_name_prefix = 'sql_server'
 channel = 'emds'
-procs = ['dbo.emds_gen_invoice_summary' , 'dbo.emds_gen_invoice_line']
+procs = ['dbo.emds_gen_invoice_summary' , 'dbo.emds_gen_invoice_line_2']
 
 
 def remove_non_letters(input_string):
