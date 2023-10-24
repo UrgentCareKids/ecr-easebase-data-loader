@@ -31,13 +31,14 @@ tables = m_cursor.fetchall()
 run_id = int(time.time())
 automation_logging = 'logging.daily_proc_automation'
 phase = 's_load'
-schema = 'stg.'
+schema = 'stg'
 table_name_prefix = 's_mahler_'
 log_table = 'logging.eb_log'
 channel = 'mahler'
-backup_schema='stg_backup.'
+backup_schema='stg_backup'
 #use the mount in the task for the connection
-dir_path = '/easebase/'
+#dir_path = '/easebase/'
+dir_path = '/Users/annastreichhardt/easebase'
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
@@ -77,7 +78,7 @@ for table in tables:
             insert_sql = f"""
                 INSERT INTO {automation_logging}
                 (channel, phase, schema_nm, table_or_proc_nm, target_table)
-                VALUES (('{channel}', '{phase}', '{schema}', '{table}', '{target_table}');
+                VALUES ('{channel}', '{phase}', '{schema}', '{table}', '{target_table}');
             """
             eb_cursor.execute(insert_sql)
             eb_conn.commit()
@@ -85,7 +86,7 @@ for table in tables:
         rsql=f"""
             INSERT INTO {log_table}
             (run_id, channel, phase, run_source, run_target, run_status, start_ts)
-            VALUES ({run_id}, '{channel}', '{phase}', '{table}', '{schema}{target_table}', 'running', CURRENT_TIMESTAMP);
+            VALUES ({run_id}, '{channel}', '{phase}', '{table}', '{schema}.{target_table}', 'running', CURRENT_TIMESTAMP);
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
@@ -154,15 +155,15 @@ for table in tables:
         # Create backup table in the easebase database
         if table_exists:
             # If the table exists, create a backup table
-            backup_table = f'{backup_schema}{target_table}'
+            backup_table = f'{backup_schema}.{target_table}'
             eb_cursor.execute(f"DROP TABLE IF EXISTS {backup_table}")
-            eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}{target_table}")
+            eb_cursor.execute(f"CREATE TABLE {backup_table} AS SELECT * FROM {schema}.{target_table}")
         
       
         # Create new table in the easebase database
         
-        eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}{target_table}")
-        eb_cursor.execute(f"CREATE TABLE {schema}{target_table} ({columns_with_types})")
+        eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}.{target_table}")
+        eb_cursor.execute(f"CREATE TABLE {schema}.{target_table} ({columns_with_types})")
    
 
         # Write the data to a tab-delimited file in the specified directory
@@ -175,14 +176,14 @@ for table in tables:
         # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
            # next(f)  # Skip the header row.
-            eb_cursor.copy_expert(f"COPY {schema}{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
+            eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
 
         eb_conn.commit()
 
         # ... rest of your code ...
 
 
-        print(f"{schema}{target_table} complete...")
+        print(f"{schema}.{target_table} complete...")
         
         os.remove(file_path)
 
