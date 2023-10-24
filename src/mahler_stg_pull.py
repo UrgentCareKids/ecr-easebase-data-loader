@@ -29,6 +29,7 @@ tables = m_cursor.fetchall()
 
 # Define the constants
 run_id = int(time.time())
+automation_logging = 'logging.daily_proc_automation'
 phase = 's_load'
 schema = 'stg.'
 table_name_prefix = 's_mahler_'
@@ -65,6 +66,21 @@ for table in tables:
         eb_cursor.execute(priorsql)
         eb_conn.commit()
 
+
+        # Check if the table name already exists in the log table
+        check_sql = f"SELECT COUNT(*) FROM {automation_logging} WHERE table_or_proc_name = %s;"
+        eb_cursor.execute(check_sql, (f"{table}",))
+        count = eb_cursor.fetchone()[0]
+
+        # If the table name doesn't exist, insert the row
+        if count == 0:
+            insert_sql = f"""
+                INSERT INTO {automation_logging}
+                (channel, phase, schema_nm, table_or_proc_nm, target_table)
+                VALUES (('{channel}', '{phase}', '{schema}', '{table}', '{target_table}');
+            """
+            eb_cursor.execute(insert_sql)
+            eb_conn.commit()
         # Log the start of processing
         rsql=f"""
             INSERT INTO {log_table}
