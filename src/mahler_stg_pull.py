@@ -68,8 +68,8 @@ for table in tables:
 
 
         # Check if the table name already exists in the log table
-        check_sql = f"SELECT COUNT(*) FROM {automation_logging} WHERE table_or_proc_name = %s;"
-        eb_cursor.execute(check_sql, (f"{table}",))
+        check_sql = f"SELECT COUNT(*) FROM {automation_logging} WHERE table_or_proc_nm = '{table}';"
+        eb_cursor.execute(check_sql)
         count = eb_cursor.fetchone()[0]
 
         # If the table name doesn't exist, insert the row
