@@ -37,8 +37,7 @@ log_table = 'logging.eb_log'
 channel = 'mahler'
 backup_schema='stg_backup'
 #use the mount in the task for the connection
-#dir_path = '/easebase/'
-dir_path = '/Users/annastreichhardt/easebase'
+dir_path = '/easebase/'
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
