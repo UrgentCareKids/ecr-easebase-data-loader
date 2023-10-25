@@ -11,13 +11,10 @@ from db.easebase_conn import easebase_conn
 # Define the constants
 run_id = int(time.time())
 phase = 'phi_refresh'
+automation_logging = 'logging.daily_proc_automation'
 log_table = 'logging.eb_log'
-schema = 'phi.'
+schema = 'phi'
 channel = 'easebase'
-procs = ['']
-# Create a dictionary to store the associations which proc is connected to which target table
-proc_to_targettable = {
-}
 
 # Connect to your databases
 eb_conn = easebase_conn()
@@ -27,7 +24,15 @@ def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
 
 
-for proc in procs:
+# Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and is_active = true;")
+# Fetch all the rows and store the table_or_proc_nm values in a Python list
+table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
+
+for proc in table_or_proc_nm_list:
+    eb_cursor.execute(f"SELECT target_table FROM {automation_logging} WHERE schema_nm = '{schema}' and table_or_proc_nm = '{proc}' and is_active = true;")
+    targettable = [row[0] for row in eb_cursor.fetchall()]
+
     try:
         # Update the log record set prior stuck in running to "failed"
         priorsql=f"""
@@ -42,13 +47,13 @@ for proc in procs:
         rsql=f"""
             INSERT INTO {log_table}
             (run_id, channel, phase, run_source, run_target, run_status, start_ts)
-            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}{proc_to_targettable[proc]}', 'running', CURRENT_TIMESTAMP);
+            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}.{targettable[0]}', 'running', CURRENT_TIMESTAMP);
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
         
         #Execute the proc
-        eb_cursor.execute(f"CALL {schema}{proc};")
+        eb_cursor.execute(f"CALL {schema}.{proc};")
 
          # Update the log record for this run_id and proc to success
         rsql=f"""
