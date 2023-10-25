@@ -31,17 +31,23 @@ table_name_prefix = 's_redshift_'
 log_table = 'logging.eb_log'
 channel = 'redshift'
 backup_schema='stg_backup.'
-tables = ['pond_locations','pond_organizations','podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback', 'gsh_invoice_summary', 'gsh_invoice_line']
+automation_logging = 'logging.daily_proc_automation'
+#tables = ['pond_locations','pond_organizations','podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback', 'gsh_invoice_summary', 'gsh_invoice_line']
 #use the mount in the task for the connection
 dir_path = '/easebase/'  # Mac directory path
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
 
+ # Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE channel = '{channel}';")
 
-for table in tables:
+# Fetch all the rows and store the table_or_proc_nm values in a Python list
+table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
+
+
+for table in table_or_proc_nm_list:
     target_table = f'{table_name_prefix}{table}'
-    print(target_table)
     try:
         # Update the log record set prior stuck in running to "failed"
         priorsql=f"""
