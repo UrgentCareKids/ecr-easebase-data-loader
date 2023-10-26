@@ -22,19 +22,23 @@ run_id = int(time.time())
 phase = 's_refresh'
 log_table = 'logging.eb_log'
 schema = 'uc4k'
-table_name_prefix = 'sql_server'
+automation_logging = 'logging.daily_proc_automation'
 channel = 'emds'
-procs = ['dbo.emds_gen_invoice_summary' , 'dbo.emds_gen_invoice_line_2']
-
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
 
-
 #use uc4k database on sql server
 emds_cursor.execute(f"USE {schema}")
 
-for proc in procs:
+# Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and phase = '{phase}' and is_active = true;")
+# Fetch all the rows and store the table_or_proc_nm values in a Python list
+table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
+
+for proc in table_or_proc_nm_list:
+    eb_cursor.execute(f"SELECT target_table FROM {automation_logging} WHERE schema_nm = '{schema}' and table_or_proc_nm = '{proc}' and is_active = true;")
+    targettable = [row[0] for row in eb_cursor.fetchall()]
     try:
         # Update the log record set prior stuck in running to "failed"
         priorsql=f"""
@@ -49,7 +53,7 @@ for proc in procs:
         rsql=f"""
             INSERT INTO {log_table}
             (run_id, channel, phase, run_source, run_target, run_status, start_ts)
-            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}.{proc}', 'running', CURRENT_TIMESTAMP);
+            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{targettable[0]}', 'running', CURRENT_TIMESTAMP);
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()

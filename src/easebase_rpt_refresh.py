@@ -32,7 +32,6 @@ table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
 for proc in table_or_proc_nm_list:
     eb_cursor.execute(f"SELECT target_table FROM {automation_logging} WHERE schema_nm = '{schema}' and table_or_proc_nm = '{proc}' and is_active = true;")
     targettable = [row[0] for row in eb_cursor.fetchall()]
-    print(targettable)
 
     try:
         # Update the log record set prior stuck in running to "failed"
