@@ -35,8 +35,7 @@ channel = 'emds'
 backup_schema='stg_backup'
 #tables = ['emds_invoice_summary', 'emds_invoice_line'] #tmp_anna_test_limited_invoice_summary for testing
 #use the mount in the task for the connection
-#dir_path = '/easebase/'
-dir_path = '/Users/annastreichhardt/easebase'
+dir_path = '/easebase/'
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
