@@ -35,7 +35,8 @@ channel = 'emds'
 backup_schema='stg_backup'
 #tables = ['emds_invoice_summary', 'emds_invoice_line'] #tmp_anna_test_limited_invoice_summary for testing
 #use the mount in the task for the connection
-dir_path = '/easebase/'
+#dir_path = '/easebase/'
+dir_path = '/Users/annastreichhardt/easebase'
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
@@ -44,7 +45,7 @@ emds_cursor.execute(f'USE {database}')
 
 
 # Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
-eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and is_active = true;")
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and phase = '{phase}' and is_active = true;")
 # Fetch all the rows and store the table_or_proc_nm values in a Python list
 table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
 
