@@ -14,7 +14,6 @@ phase = 'p_refresh'
 log_table = 'logging.eb_log'
 automation_logging = 'logging.daily_proc_automation'
 schema = 'p'
-table_name_prefix = 'p_'
 channel = 'easebase'
 
 # Connect to your databases
@@ -47,7 +46,7 @@ for proc in table_or_proc_nm_list:
         rsql=f"""
             INSERT INTO {log_table}
             (run_id, channel, phase, run_source, run_target, run_status, start_ts)
-            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}.{table_name_prefix}{targettable[0]}', 'running', CURRENT_TIMESTAMP);
+            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}.{targettable[0]}', 'running', CURRENT_TIMESTAMP);
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
