@@ -10,10 +10,10 @@ from db.easebase_conn import easebase_conn
 
 # Define the constants
 run_id = int(time.time())
-phase = 'phi_refresh'
-automation_logging = 'logging.daily_proc_automation'
+phase = 'rpt_refresh'
 log_table = 'logging.eb_log'
-schema = 'phi'
+automation_logging = 'logging.daily_proc_automation'
+schema = 'rpt'
 channel = 'easebase'
 
 # Connect to your databases
@@ -25,7 +25,7 @@ def remove_non_letters(input_string):
 
 
 # Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
-eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and is_active = true;")
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and is_active = true and hr_refresh_frequency = 1;")
 # Fetch all the rows and store the table_or_proc_nm values in a Python list
 table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
 
