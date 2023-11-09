@@ -44,12 +44,12 @@ emds_cursor.execute(f'USE {database}')
 
 
 # Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
-eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and phase = '{phase}' and is_active = true;")
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE channel = '{channel}' and schema_nm = '{schema}' and phase = '{phase}' and is_active = true;")
 # Fetch all the rows and store the table_or_proc_nm values in a Python list
 table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
 
 for table in table_or_proc_nm_list:
-    eb_cursor.execute(f"SELECT target_table FROM {automation_logging} WHERE schema_nm = '{schema}' and table_or_proc_nm = '{table}' and is_active = true;")
+    eb_cursor.execute(f"SELECT target_table FROM {automation_logging} WHERE channel = '{channel}' and table_or_proc_nm = '{table}' and is_active = true;")
     targettable = [row[0] for row in eb_cursor.fetchall()]
 
     
@@ -71,6 +71,23 @@ for table in table_or_proc_nm_list:
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
+
+
+        ### check if today's run was successful first, if not don't load
+
+        # Get the current date as a string
+        current_date = datetime.now().date()
+
+        # Query to check for a value for today
+        check_s_refresh = f"SELECT COUNT(*) FROM {log_table} WHERE run_status = 'success' and run_source = '{table}' and end_ts = '{current_date}'"
+        eb_cursor.execute(check_s_refresh)
+
+        # Fetch the result
+        result = eb_cursor.fetchone()[0]
+
+        if result <= 0:
+        # Raise an error if no value for today is found
+            raise Exception("Source Data has not been refreshed today")
 
        # Fetch all rows from the emds table
         print(f'SELECT * FROM {table}')

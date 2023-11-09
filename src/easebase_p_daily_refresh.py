@@ -1,4 +1,4 @@
-# please add new procs in line 20 array procs and then the matching table into the proc_to_targettable data dictionary in line 22
+# this is including all procs which should run after the inital source pull
 
 import psycopg2
 from psycopg2 import sql
@@ -10,10 +10,10 @@ from db.easebase_conn import easebase_conn
 
 # Define the constants
 run_id = int(time.time())
-phase = 'rpt_refresh'
+phase = 'p_refresh'
 log_table = 'logging.eb_log'
 automation_logging = 'logging.daily_proc_automation'
-schema = 'rpt'
+schema = 'p'
 channel = 'easebase'
 
 # Connect to your databases
@@ -23,9 +23,8 @@ eb_cursor = eb_conn.cursor()
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
 
-
 # Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
-eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and is_active = true;")
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE schema_nm = '{schema}' and is_active = true and hr_refresh_frequency = 24;")
 # Fetch all the rows and store the table_or_proc_nm values in a Python list
 table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
 
