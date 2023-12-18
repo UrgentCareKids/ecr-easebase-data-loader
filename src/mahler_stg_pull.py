@@ -50,7 +50,6 @@ def sanitize_pg_name(pg_name):
     return sanitized_pg_name
 
 
-
 for table in tables:
     table = table[0]
     pg_table = sanitize_pg_name(table)
