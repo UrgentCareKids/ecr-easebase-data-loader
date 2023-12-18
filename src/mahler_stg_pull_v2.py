@@ -1,16 +1,14 @@
 import psycopg2
-import subprocess
 from psycopg2 import sql
 import sys
 import boto3
 import os
 import time
-import tempfile
 
 #set the import path for db
 sys.path.append('./db')
 
-from db.mahler_conn import mahler_conn, get_mahler_param
+from db.mahler_conn import mahler_conn
 from db.easebase_conn import easebase_conn
 from datetime import datetime
 import re
@@ -59,7 +57,6 @@ for table in tables:
 
     try:
         # Update the log record set prior stuck in running to "failed"
-        print(f"{schema}.{target_table} initialization...")
         priorsql=f"""
             UPDATE {log_table}
             SET run_status = 'failed', end_ts = CURRENT_TIMESTAMP
@@ -93,12 +90,12 @@ for table in tables:
         eb_conn.commit()
 
         # Fetch all rows from the mahler database
-        # if table != 'pusers':
-        #     m_cursor.execute(f"SELECT * FROM `{table}`")
-        #     rows = m_cursor.fetchall()
-        # else: 
-        #     m_cursor.execute(f"SELECT id,username,firstname,lastname,middlename,accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`")
-        #     rows = m_cursor.fetchall()
+        if table != 'pusers':
+            m_cursor.execute(f"SELECT * FROM `{table}`")
+            rows = m_cursor.fetchall()
+        else: 
+            m_cursor.execute(f"SELECT id,username,firstname,lastname,middlename,accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`")
+            rows = m_cursor.fetchall()
 
         # Fetch column names and types from the mahler database
         if table != 'pusers':
@@ -166,28 +163,26 @@ for table in tables:
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}.{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}.{target_table} ({columns_with_types})")
    
-        print(f"{schema}.{target_table} file dump starting...")
+
         # Write the data to a tab-delimited file in the specified directory
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
-        #old memory intensive code    
-        # with open(file_path, 'w', newline='') as tsvfile:
-        #     writer = csv.writer(tsvfile, delimiter='|')
-        #     for row in rows:
-        #         writer.writerow(row)
-        mysql_username=get_mahler_param('user')
-        mysql_password=get_mahler_param('password')
-        mysql_database=get_mahler_param('database')
+        with open(file_path, 'w', newline='') as tsvfile:
+            writer = csv.writer(tsvfile, delimiter='|')
+            for row in rows:
+                writer.writerow(row)
 
-        cmd = f"mysql -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"SELECT * FROM {table}\" > {file_path}"
-        subprocess.run(cmd, shell=True, check=True)
-
-        # Usage
         # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
            # next(f)  # Skip the header row.
             eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
-        
+
+        eb_conn.commit()
+
+        # ... rest of your code ...
+
+
         print(f"{schema}.{target_table} complete...")
+        
         os.remove(file_path)
 
         # Update the log record for this run_id and table to success
