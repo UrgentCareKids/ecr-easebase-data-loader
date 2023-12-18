@@ -207,6 +207,8 @@ for table in tables:
                     subprocess.run(['expect', script_file_path], stdout=dump_file, check=True)
             finally:
                 os.remove(script_file_path)
+                
+        run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path)
         # Open the exported file and load it into PostgreSQL
         with open(dump_file_path, 'r') as f:
             eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
