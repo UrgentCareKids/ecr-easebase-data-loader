@@ -183,6 +183,9 @@ for table in tables:
         mysql_username=get_mahler_param('user')
         mysql_password=get_mahler_param('password')
         mysql_database=get_mahler_param('database')
+
+        # set password for the dump
+        os.environ["MYSQL_PWD"] = mysql_password
         
         dump_file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.sql")
         dump_command = f"mysqldump -u {mysql_username} --password '{mysql_password}' {mysql_database} {table} > {dump_file_path}"
