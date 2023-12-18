@@ -187,7 +187,7 @@ for table in tables:
 
         
         dump_file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.sql")
-        dump_command = f"mysqldump -u {mysql_username} --password'{mysql_password}' {mysql_database} {table} > {dump_file_path}"
+        dump_command = f"mysqldump -u {mysql_username} --password='{mysql_password}' {mysql_database} {table} > {dump_file_path}"
         subprocess.run(dump_command, shell=True, check=True)
         # def run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path):
         #     expect_script = f"""
