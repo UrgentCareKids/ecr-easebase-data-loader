@@ -59,6 +59,7 @@ for table in tables:
 
     try:
         # Update the log record set prior stuck in running to "failed"
+        print(f"{schema}.{target_table} initialization...")
         priorsql=f"""
             UPDATE {log_table}
             SET run_status = 'failed', end_ts = CURRENT_TIMESTAMP
@@ -165,61 +166,36 @@ for table in tables:
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}.{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}.{target_table} ({columns_with_types})")
    
-#old memory intensive code
-        # # Write the data to a tab-delimited file in the specified directory
-        # file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
+
+        # Write the data to a tab-delimited file in the specified directory
+        file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
+    #old memory intensive code    
         # with open(file_path, 'w', newline='') as tsvfile:
         #     writer = csv.writer(tsvfile, delimiter='|')
         #     for row in rows:
         #         writer.writerow(row)
 
-        # # Open the tab-delimited file and load it into the PostgreSQL database
-        # with open(file_path, 'r') as f:
-        #    # next(f)  # Skip the header row.
-        #     eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
-
-#new shiny code Export the table from MySQL using mysqldump
-
-        mysql_host='localhost'
-        mysql_username=get_mahler_param('user')
-        mysql_password=get_mahler_param('password')
-        mysql_database=get_mahler_param('database')
-
-        
-        dump_file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.sql")
-        #dump_command = f"mysqldump -u {mysql_username} --password='{mysql_password}' {mysql_database} {table} > {dump_file_path}"
-        #subprocess.run(dump_command, shell=True, check=True)
-        def run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path):
-            expect_script = f"""
-            spawn mysqldump -h 127.0.0.1 -P 3306 -u {mysql_username} -p {mysql_database} {table}
-            expect "Enter password:"
-            send "{mysql_password}\r"
-            expect eof
+        def export_mysql_to_tsv(table, m_cursor, file_path):
+            #file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
+            export_sql = f"""
+            SELECT *
+            INTO OUTFILE '{file_path}'
+            FIELDS TERMINATED BY '|' OPTIONALLY ENCLOSED BY '"' 
+            LINES TERMINATED BY '\n'
+            FROM {table};
             """
+            m_cursor.execute(export_sql)
 
-            with tempfile.NamedTemporaryFile(prefix="mysqldump_", suffix=".exp", delete=False) as script_file:
-                script_file.write(expect_script.encode('utf-8'))
-                script_file_path = script_file.name
+        # Example usage
+        export_mysql_to_tsv(table, m_cursor, file_path)
 
-            try:
-                # Redirect the output of the Expect script to the file
-                with open(dump_file_path, 'w') as dump_file:
-                    subprocess.run(['expect', script_file_path], stdout=dump_file, check=True)
-            finally:
-                os.remove(script_file_path)
-
-        run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path)
-        # Open the exported file and load it into PostgreSQL
-        with open(dump_file_path, 'r') as f:
+        # Open the tab-delimited file and load it into the PostgreSQL database
+        with open(file_path, 'r') as f:
+           # next(f)  # Skip the header row.
             eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
-        eb_conn.commit()
-
-        # ... rest of your code ...
-
-
-        print(f"{schema}.{target_table} complete...")
         
-        os.remove(dump_file_path)
+        print(f"{schema}.{target_table} complete...")
+        os.remove(file_path)
 
         # Update the log record for this run_id and table to success
         rsql=f"""
