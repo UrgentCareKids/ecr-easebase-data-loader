@@ -187,26 +187,26 @@ for table in tables:
 
         
         dump_file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.sql")
-        dump_command = f"mysqldump -u {mysql_username} --password '{mysql_password}' {mysql_database} {table} > {dump_file_path}"
-        #subprocess.run(dump_command, shell=True, check=True)
-        def run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path):
-            expect_script = f"""
-            spawn mysqldump -h 127.0.0.1 -P 3306 -u {mysql_username} -p {mysql_database} {table} > {dump_file_path}
-            expect "Enter password:"
-            send "{mysql_password}\r"
-            expect eof
-            """
+        dump_command = f"mysqldump -u {mysql_username} --password'{mysql_password}' {mysql_database} {table} > {dump_file_path}"
+        subprocess.run(dump_command, shell=True, check=True)
+        # def run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path):
+        #     expect_script = f"""
+        #     spawn mysqldump -h 127.0.0.1 -P 3306 -u {mysql_username} -p {mysql_database} {table} > {dump_file_path}
+        #     expect "Enter password:"
+        #     send "{mysql_password}\r"
+        #     expect eof
+        #     """
 
-            with tempfile.NamedTemporaryFile(prefix="mysqldump_", suffix=".exp", delete=False) as script_file:
-                script_file.write(expect_script.encode('utf-8'))
-                script_file_path = script_file.name
+        #     with tempfile.NamedTemporaryFile(prefix="mysqldump_", suffix=".exp", delete=False) as script_file:
+        #         script_file.write(expect_script.encode('utf-8'))
+        #         script_file_path = script_file.name
 
-            try:
-                subprocess.run(['expect', script_file_path], check=True)
-            finally:
-                os.remove(script_file_path)
+        #     try:
+        #         subprocess.run(['expect', script_file_path], check=True)
+        #     finally:
+        #         os.remove(script_file_path)
 
-        run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path)
+        # run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path)
         # Open the exported file and load it into PostgreSQL
         with open(dump_file_path, 'r') as f:
             eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
