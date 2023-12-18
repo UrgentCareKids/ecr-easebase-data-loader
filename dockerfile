@@ -4,6 +4,7 @@ RUN yum install -y openssh-clients
 
 # Install MySQL client (including mysqldump)
 RUN yum install -y mysql
+RUN yum install -y expect
 
 WORKDIR /src
 
