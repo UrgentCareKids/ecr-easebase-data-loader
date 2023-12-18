@@ -190,7 +190,7 @@ for table in tables:
         try:
             export_mysql_to_tsv(table, m_cursor, file_path)
         except Exception as e:
-             err = remove_non_letters(str(e))
+             print(e)
 
         # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
