@@ -93,12 +93,12 @@ for table in tables:
         eb_conn.commit()
 
         # Fetch all rows from the mahler database
-        if table != 'pusers':
-            m_cursor.execute(f"SELECT * FROM `{table}`")
-            rows = m_cursor.fetchall()
-        else: 
-            m_cursor.execute(f"SELECT id,username,firstname,lastname,middlename,accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`")
-            rows = m_cursor.fetchall()
+        # if table != 'pusers':
+        #     m_cursor.execute(f"SELECT * FROM `{table}`")
+        #     rows = m_cursor.fetchall()
+        # else: 
+        #     m_cursor.execute(f"SELECT id,username,firstname,lastname,middlename,accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`")
+        #     rows = m_cursor.fetchall()
 
         # Fetch column names and types from the mahler database
         if table != 'pusers':
