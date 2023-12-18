@@ -180,7 +180,7 @@ for table in tables:
             export_sql = f"""
             SELECT *
             INTO OUTFILE '{file_path}'
-            FIELDS TERMINATED BY '|' OPTIONALLY ENCLOSED BY '"' 
+            FIELDS TERMINATED BY '\t' OPTIONALLY ENCLOSED BY '"' 
             LINES TERMINATED BY '\n'
             FROM {table};
             """
