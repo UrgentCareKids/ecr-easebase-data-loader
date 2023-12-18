@@ -166,10 +166,10 @@ for table in tables:
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}.{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}.{target_table} ({columns_with_types})")
    
-
+        print(f"{schema}.{target_table} file dump starting...")
         # Write the data to a tab-delimited file in the specified directory
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
-    #old memory intensive code    
+        #old memory intensive code    
         # with open(file_path, 'w', newline='') as tsvfile:
         #     writer = csv.writer(tsvfile, delimiter='|')
         #     for row in rows:
@@ -187,7 +187,10 @@ for table in tables:
             m_cursor.execute(export_sql)
 
         # Example usage
-        export_mysql_to_tsv(table, m_cursor, file_path)
+        try:
+            export_mysql_to_tsv(table, m_cursor, file_path)
+        except Exception as e:
+             err = remove_non_letters(str(e))
 
         # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
