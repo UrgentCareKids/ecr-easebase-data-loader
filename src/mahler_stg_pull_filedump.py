@@ -6,7 +6,7 @@ import boto3
 import os
 import time
 import tempfile
-
+import html
 #set the import path for db
 sys.path.append('./db')
 
@@ -181,7 +181,17 @@ for table in tables:
         cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" > {file_path}"
         subprocess.run(cmd, shell=True, check=True)
 
-        # Usage
+        # decode weird mahler stuff
+
+        def decode_html_entities(file_path):
+            with open(file_path, 'r', encoding='utf-8') as file:
+                data = file.read()
+
+            decoded_data = html.unescape(data)
+
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(decoded_data)
+
         # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
            # next(f)  # Skip the header row.
