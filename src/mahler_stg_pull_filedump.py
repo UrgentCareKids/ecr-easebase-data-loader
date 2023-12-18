@@ -191,7 +191,7 @@ for table in tables:
         #subprocess.run(dump_command, shell=True, check=True)
         def run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path):
             expect_script = f"""
-            spawn mysqldump -h 127.0.0.1 -P 3306 -u {mysql_username} --password='{mysql_password}' {mysql_database} {table}
+            spawn mysqldump -h 127.0.0.1 -P 3306 -u {mysql_username} -p {mysql_database} {table}
             expect "Enter password:"
             send "{mysql_password}\r"
             expect eof
@@ -207,7 +207,7 @@ for table in tables:
                     subprocess.run(['expect', script_file_path], stdout=dump_file, check=True)
             finally:
                 os.remove(script_file_path)
-                
+
         run_mysqldump(mysql_username, mysql_password, mysql_database, table, dump_file_path)
         # Open the exported file and load it into PostgreSQL
         with open(dump_file_path, 'r') as f:
