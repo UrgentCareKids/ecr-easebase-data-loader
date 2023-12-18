@@ -193,6 +193,7 @@ for table in tables:
                 file.write(decoded_data)
 
         # Open the tab-delimited file and load it into the PostgreSQL database
+        decode_html_entities(file_path)
         with open(file_path, 'r') as f:
            # next(f)  # Skip the header row.
             eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '\t' CSV HEADER", f)
