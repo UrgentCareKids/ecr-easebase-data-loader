@@ -178,7 +178,7 @@ for table in tables:
         mysql_password=get_mahler_param('password')
         mysql_database=get_mahler_param('database')
 
-        cmd = f"mysql -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"SELECT * FROM {table}\" > {file_path}"
+        cmd = f"mysql -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" > {file_path}"
         subprocess.run(cmd, shell=True, check=True)
 
         # Usage
