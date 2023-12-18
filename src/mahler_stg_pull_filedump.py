@@ -9,7 +9,7 @@ import time
 #set the import path for db
 sys.path.append('./db')
 
-from db.mahler_conn import mahler_conn
+from db.mahler_conn import mahler_conn, get_mahler_param
 from db.easebase_conn import easebase_conn
 from datetime import datetime
 import re
@@ -178,8 +178,14 @@ for table in tables:
         #     eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
 
 #new shiny code Export the table from MySQL using mysqldump
+
+        mysql_host='localhost'
+        mysql_username=get_mahler_param('user')
+        mysql_password=get_mahler_param('password')
+        mysql_database=get_mahler_param('database')
+        
         dump_file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.sql")
-        dump_command = f"mysqldump -u [username] -p[password] [database] {table} > {dump_file_path}"
+        dump_command = f"mysqldump -u {mysql_username} -p {mysql_password} {mysql_database} {table} > {dump_file_path}"
         subprocess.run(dump_command, shell=True, check=True)
 
         # Open the exported file and load it into PostgreSQL
