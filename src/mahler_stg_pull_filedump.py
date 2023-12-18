@@ -202,7 +202,7 @@ for table in tables:
                 script_file_path = script_file.name
 
             try:
-                subprocess.run(['expect', script_file_path], check=True)
+                subprocess.run(['expect', script_file_path], check=True, shell=True)
             finally:
                 os.remove(script_file_path)
 
