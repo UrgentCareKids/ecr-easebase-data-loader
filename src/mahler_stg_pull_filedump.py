@@ -183,7 +183,7 @@ for table in tables:
         # subprocess.run(cmd, shell=True, check=True)
     
         # Step 1: Dump data to a temporary file
-        cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" > {file_path} "
+        cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" > {tmp_file_path} "
         subprocess.run(cmd, shell=True, check=True)
 
         # Step 1: Dump data to a temporary file
@@ -191,9 +191,9 @@ for table in tables:
         # mysql_cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" > {temp_file_path}"
         # subprocess.run(mysql_cmd, shell=True, check=True)
 
-        # Step 2: Process the temporary file with awk and write to the final file
-        # process_cmd = f"awk '{{gsub(\"\\t\", \"\\x1F\"); print}}' {file_path} "
-        # subprocess.run(process_cmd, shell=True, check=True)
+        #Step 2: Process the temporary file with awk and write to the final file
+        process_cmd = f"awk '{{gsub(\"\\t\", \"\\x1F\"); print}}' {tmp_file_path}>{file_path} "
+        subprocess.run(process_cmd, shell=True, check=True)
 
       
         with open(file_path, 'r') as f:
