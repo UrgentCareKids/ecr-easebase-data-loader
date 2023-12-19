@@ -178,8 +178,9 @@ for table in tables:
         mysql_password=get_mahler_param('password')
         mysql_database=get_mahler_param('database')
 
-        cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" | sed 's/\t/'$(echo -e '\x1F')'/g' > {file_path} "
+        cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" | sed 's/\t/'$(echo -e '\x1F')'/g' > {file_path}"
         subprocess.run(cmd, shell=True, check=True)
+
       
         with open(file_path, 'r') as f:
             eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN WITH (FORMAT 'csv', DELIMITER E'\x1F')", f)
