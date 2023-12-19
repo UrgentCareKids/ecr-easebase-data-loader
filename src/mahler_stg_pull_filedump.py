@@ -178,25 +178,12 @@ for table in tables:
         mysql_password=get_mahler_param('password')
         mysql_database=get_mahler_param('database')
 
-        cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" | sed 's/\t/|/g' > {file_path} "
+        cmd = f"mysql --default-character-set=utf8 -u {mysql_username} -p{mysql_password} -h 127.0.0.1 -P 3306 -e \"USE {mysql_database}; SELECT * FROM {table}\" | sed 's/\t/¤/g' > {file_path} "
         subprocess.run(cmd, shell=True, check=True)
-
-        # decode weird mahler stuff
-
-        # def decode_html_entities(file_path):
-        #     with open(file_path, 'r', encoding='utf-8') as file:
-        #         data = file.read()
-
-        #     decoded_data = html.unescape(data)
-
-        #     with open(file_path, 'w', encoding='utf-8') as file:
-        #         file.write(decoded_data)
-
-        # # Open the tab-delimited file and load it into the PostgreSQL database
-        # decode_html_entities(file_path)
+      
         with open(file_path, 'r') as f:
            # next(f)  # Skip the header row.
-            eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '|' CSV HEADER", f)
+            eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN DELIMITER '¤' CSV HEADER", f)
         
         print(f"{schema}.{target_table} complete...")
         os.remove(file_path)
