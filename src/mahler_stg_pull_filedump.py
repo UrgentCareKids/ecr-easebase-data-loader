@@ -197,7 +197,7 @@ for table in tables:
 
       
         with open(file_path, 'r') as f:
-            eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN WITH (FORMAT 'csv', DELIMITER E'\x1F')", f)
+            eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN WITH (HEADER FORMAT 'csv', DELIMITER E'\x1F')", f)
         eb_conn.commit()
 
         print(f"{schema}.{target_table} complete...")
