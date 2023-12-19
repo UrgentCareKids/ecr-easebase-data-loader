@@ -199,8 +199,8 @@ for table in tables:
         eb_conn.commit()
 
         print(f"{schema}.{target_table} complete...")
-        os.remove(file_path)
-        os.remove(tmp_file_path)
+        #os.remove(file_path)
+        
 
         # Update the log record for this run_id and table to success
         rsql=f"""
