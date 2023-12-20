@@ -89,13 +89,13 @@ for table in tables:
         eb_cursor.execute(rsql)
         eb_conn.commit()
 
-        # # Fetch all rows from the mahler database
-        # if table != 'pusers':
-        #     m_cursor.execute(f"SELECT * FROM `{table}`")
-        #     rows = m_cursor.fetchall()
-        # else: 
-        #     m_cursor.execute(f"SELECT id,username,firstname,lastname,middlename,accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`")
-        #     rows = m_cursor.fetchall()
+        # Fetch all rows from the mahler database
+        if table != 'pusers':
+            m_cursor.execute(f"SELECT * FROM `{table}`")
+            rows = m_cursor.fetchall()
+        else: 
+            m_cursor.execute(f"SELECT id,username,firstname,lastname,middlename,accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`")
+            rows = m_cursor.fetchall()
 
         # Fetch column names and types from the mahler database
         if table != 'pusers':
@@ -163,30 +163,13 @@ for table in tables:
         eb_cursor.execute(f"DROP TABLE IF EXISTS {schema}.{target_table}")
         eb_cursor.execute(f"CREATE TABLE {schema}.{target_table} ({columns_with_types})")
    
-        # 
-        batch_size = 10000  # Number of rows to handle at a time
 
-# Determine the query based on the table
-        if table != 'pusers':
-            query = f"SELECT * FROM `{table}`"
-        else: 
-            query = "SELECT id, username, firstname, lastname, middlename, accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`"
-
-        # Write data to the file in batches
+        # Write the data to a tab-delimited file in the specified directory
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
-        with open(file_path, 'a', newline='') as tsvfile:
+        with open(file_path, 'w', newline='') as tsvfile:
             writer = csv.writer(tsvfile, delimiter='|')
-
-            m_cursor.execute(query)
-            while True:
-                # Fetch a batch of rows
-                rows = m_cursor.fetchmany(batch_size)
-                if not rows:
-                    break  # Exit the loop if no more rows are fetched
-
-                # Write the current batch to the file
-                for row in rows:
-                    writer.writerow(row)
+            for row in rows:
+                writer.writerow(row)
 
         # Open the tab-delimited file and load it into the PostgreSQL database
         with open(file_path, 'r') as f:
