@@ -164,7 +164,7 @@ for table in tables:
         eb_cursor.execute(f"CREATE TABLE {schema}.{target_table} ({columns_with_types})")
    
         # 
-        batch_size = 1000  # Number of rows to handle at a time
+        batch_size = 10000  # Number of rows to handle at a time
 
 # Determine the query based on the table
         if table != 'pusers':
