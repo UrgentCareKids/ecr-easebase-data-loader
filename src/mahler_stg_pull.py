@@ -170,7 +170,7 @@ for table in tables:
         if table != 'pusers':
             query = f"SELECT * FROM `{table}`"
         else: 
-            query = "SELECT id, username, firstname, lastname, middlename, accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`"
+            query = f"SELECT id, username, firstname, lastname, middlename, accessLevel, date_added, active, lastLogin, module_access, practiceID, npi_number, licenses, additional_username, additional_identifier, fax_number, last_modified, region_ids, regions, taxonomy FROM `{table}`"
 
         # Write data to the file in batches
         file_path = os.path.join(dir_path, f"{table}_{datetime.now().strftime('%Y_%m_%d')}.tsv")
