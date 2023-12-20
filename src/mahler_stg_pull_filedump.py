@@ -195,9 +195,27 @@ for table in tables:
         process_cmd = f"awk '{{gsub(\"\\t\", \"\\x1F\"); print}}' {tmp_file_path}>{file_path} "
         subprocess.run(process_cmd, shell=True, check=True)
 
-      
+            
         with open(file_path, 'r') as f:
-            eb_cursor.copy_expert(f"COPY {schema}.{target_table} FROM STDIN WITH (FORMAT 'csv', DELIMITER E'\x1F', HEADER)", f)
+            # Determine the number of columns from the header
+            header = next(f).strip().split('\x1F')
+            num_columns = len(header)
+
+            # Construct the INSERT query dynamically
+            placeholders = ', '.join(['%s'] * num_columns)
+            insert_query = f"INSERT INTO {schema}.{target_table} VALUES ({placeholders})"
+
+            # Process and insert each line
+            for line in f:
+                try:
+                    values = line.strip().split('\x1F')
+                    eb_cursor.execute(insert_query, values)
+                except psycopg2.DatabaseError as e:
+                    print(f"Error with line: {line}")
+                    print(f"Error details: {e}")
+                    eb_conn.rollback()  # Rollback the transaction for the current line
+
+        # Committing the transaction
         eb_conn.commit()
 
         print(f"{schema}.{target_table} complete...")
