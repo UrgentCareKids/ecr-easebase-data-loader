@@ -14,7 +14,6 @@ phase = 'p_refresh'
 log_table = 'logging.eb_log'
 automation_logging = 'logging.daily_proc_automation'
 schema = 'p'
-channel = 'easebase'
 
 # Connect to your databases
 eb_conn = easebase_conn()
@@ -32,12 +31,15 @@ for proc in table_or_proc_nm_list:
     eb_cursor.execute(f"SELECT target_table FROM {automation_logging} WHERE schema_nm = '{schema}' and table_or_proc_nm = '{proc}' and is_active = true;")
     targettable = [row[0] for row in eb_cursor.fetchall()]
 
+    eb_cursor.execute(f"SELECT channel FROM {automation_logging} WHERE schema_nm = '{schema}' and table_or_proc_nm = '{proc}' and is_active = true;")
+    channel = [row[0] for row in eb_cursor.fetchall()]
+
     try:
         # Update the log record set prior stuck in running to "failed"
         priorsql=f"""
             UPDATE {log_table}
             SET run_status = 'failed', end_ts = CURRENT_TIMESTAMP
-            WHERE  run_source = '{proc}' and channel = '{channel}' and run_status = 'running';
+            WHERE  run_source = '{proc}' and phase = '{phase}' and run_status = 'running';
         """
         eb_cursor.execute(priorsql)
         eb_conn.commit()
@@ -46,7 +48,7 @@ for proc in table_or_proc_nm_list:
         rsql=f"""
             INSERT INTO {log_table}
             (run_id, channel, phase, run_source, run_target, run_status, start_ts)
-            VALUES ({run_id}, '{channel}', '{phase}', '{proc}', '{schema}.{targettable[0]}', 'running', CURRENT_TIMESTAMP);
+            VALUES ({run_id}, '{channel[0]}', '{phase}', '{proc}', '{schema}.{targettable[0]}', 'running', CURRENT_TIMESTAMP);
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
@@ -58,7 +60,7 @@ for proc in table_or_proc_nm_list:
         rsql=f"""
             UPDATE {log_table}
             SET run_status = 'success', end_ts = CURRENT_TIMESTAMP
-            WHERE run_id = {run_id} AND run_source = '{proc}' and channel = '{channel}';
+            WHERE run_id = {run_id} AND run_source = '{proc}' and phase = '{phase}';
         """
         eb_cursor.execute(rsql)
         eb_conn.commit()
@@ -69,7 +71,7 @@ for proc in table_or_proc_nm_list:
                 rsql=f"""
                     UPDATE {log_table}
                     SET run_status = 'failed', error_desc = '{err[:255]}', end_ts = CURRENT_TIMESTAMP
-                    WHERE run_id = {run_id} AND run_source = '{proc}' and channel = '{channel}';
+                    WHERE run_id = {run_id} AND run_source = '{proc}' and phase = '{phase}';
                 """
                 eb_cursor.execute(rsql)
                 eb_conn.commit()
