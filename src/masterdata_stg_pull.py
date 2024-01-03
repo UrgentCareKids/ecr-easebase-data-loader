@@ -34,8 +34,7 @@ backup_schema='stg_backup.'
 automation_logging = 'logging.daily_proc_automation'
 #tables = ['mat_tmp_fast_demographics', 'mat_fast_search_json', 'mahler_event_cx', 'facility_org_cx', 'mahler_id_cx', 'mstr_hl7_interface_id_cx', 'mstr_guarantor_hl7_interface_id_cx', 'mstr_intake_transaction_router']
 #use the mount in the task for the connection
-#dir_path = '/easebase/'  # Mac directory path
-dir_path = '/Users/annastreichhardt/easebase'
+dir_path = '/easebase/'  
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
