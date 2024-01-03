@@ -34,13 +34,13 @@ backup_schema='stg_backup.'
 automation_logging = 'logging.daily_proc_automation'
 #tables = ['pond_locations','pond_organizations','podium_review', 'pond_podium_feedback', 'gsh_visit_order_pivot', 'podium_feedback', 'gsh_invoice_summary', 'gsh_invoice_line']
 #use the mount in the task for the connection
-dir_path = '/easebase/'  # Mac directory path
+dir_path = '/easebase/'  
 
 def remove_non_letters(input_string):
     return re.sub(r'[^a-zA-Z ]', '', input_string)
 
  # Query the logging.daily_proc_automation table to retrieve the table_or_proc_nm column
-eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE channel = '{channel}' and is_active = true;")
+eb_cursor.execute(f"SELECT table_or_proc_nm FROM {automation_logging} WHERE channel = '{channel}' and phase = '{phase}' and is_active = true;")
 
 # Fetch all the rows and store the table_or_proc_nm values in a Python list
 table_or_proc_nm_list = [row[0] for row in eb_cursor.fetchall()]
